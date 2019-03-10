@@ -354,26 +354,17 @@ class MultiHeadedAttention(nn.Module):
         # where k is the square root of 1/n_units.
         # Note: the only Pytorch modules you are allowed to use are nn.Linear 
         # and nn.Dropout
-        k = np.sqrt(1./self.n_units)
         self.n_heads = n_heads
         self.w_q = torch.nn.Linear(self.n_units, self.d_k)
-        torch.nn.init.uniform_(self.w_q.weight, -k, k)
-        torch.nn.init.uniform_(self.w_q.bias, -k, k)
         self.w_q = clones(self.w_q, n_heads)
 
         self.w_k = torch.nn.Linear(self.n_units, self.d_k)
-        torch.nn.init.uniform_(self.w_k.weight, -k, k)
-        torch.nn.init.uniform_(self.w_k.bias, -k, k)
         self.w_k = clones(self.w_k, n_heads)
 
         self.w_v = torch.nn.Linear(self.n_units, self.d_k)
-        torch.nn.init.uniform_(self.w_v.weight, -k, k)
-        torch.nn.init.uniform_(self.w_v.bias, -k, k)
         self.w_v = clones(self.w_v, n_heads)
 
         self.w_o = torch.nn.Linear(self.n_units, self.n_units)
-        torch.nn.init.uniform_(self.w_o.weight, -k, k)
-        torch.nn.init.uniform_(self.w_o.bias, -k, k)
         
     def forward(self, query, key, value, mask=None):
         # TODO: implement the masked multi-head attention.
