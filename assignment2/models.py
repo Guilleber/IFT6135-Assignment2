@@ -411,8 +411,9 @@ class MultiHeadedAttention(nn.Module):
             x = torch.matmul(self.w_q[i](query), torch.transpose(self.w_k[i](key), -2, -1))
             a_i = torch.nn.functional.softmax(torch.full_like(x, -1e-9).masked_scatter(mask, x),
                                               dim=-1)
+            a_i = self.dropout(a_i)
             h_i = torch.matmul(a_i, self.w_v[i](value))
-            h_i = self.dropout(h_i)
+            h_i = h_i
 
             h.append(h_i)
 
