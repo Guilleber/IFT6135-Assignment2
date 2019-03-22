@@ -262,7 +262,8 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
     def forward(self, inputs, hidden):
         logits = []
-        hidden_ = torch.empty(self.num_layers, self.batch_size, self.hidden_size)
+        device = torch.device('cuda') if inputs.is_cuda else torch.device('cpu')
+        hidden_ = torch.empty(self.num_layers, self.batch_size, self.hidden_size, device=device)
         for t in range(self.seq_len):
             h_t = self.emb(inputs[t])
             h_t = self.dropout(h_t)
