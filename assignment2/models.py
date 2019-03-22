@@ -148,7 +148,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
               if you are curious.
                     shape: (num_layers, batch_size, hidden_size)
     """
-    emb_inputs = self.embedding(inputs.view(self.seq_len*self.batch_size)).view(self.seq_len, self.batch_size, self.emb_size)
+    emb_inputs = self.dropout(self.embedding(inputs.view(self.seq_len*self.batch_size)).view(self.seq_len, self.batch_size, self.emb_size))
     
     logits = []
     
@@ -191,7 +191,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
         - Sampled sequences of tokens
                     shape: (generated_seq_len, batch_size)
     """
-    out = self.embedding(input)
+    out = self.dropout(self.embedding(input))
     samples = torch.zeros((generated_seq_len, batch_size)).float()
 
     for t in range(generated_seq_len):
