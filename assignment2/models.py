@@ -273,11 +273,12 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](hidden[i]))
                 h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
                 h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
-                h_t = self.dropout(h_t)
 
                 # use new hidden layer for next mini-batch
                 if t == self.seq_len - 1:
                     hidden_[i] = h_t
+
+                h_t = self.dropout(h_t)
 
             logits.append(self.w_y(h_t))
 
@@ -410,7 +411,8 @@ class MultiHeadedAttention(nn.Module):
             x = torch.matmul(self.w_q[i](query), torch.transpose(self.w_k[i](key), -2, -1))
             a_i = torch.nn.functional.softmax(torch.full_like(x, -1e-9).masked_scatter(mask, x),
                                               dim=-1)
-            h_i = torch.matmul(self.dropout(a_i), self.w_v[i](value))
+            h_i = torch.matmul(a_i, self.w_v[i](value))
+            h_i = self.dropout(h_i)
 
             h.append(h_i)
 
