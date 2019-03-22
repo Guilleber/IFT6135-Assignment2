@@ -178,7 +178,6 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
     # Unlike for self.forward, you WILL need to apply the softmax activation 
     # function here in order to compute the parameters of the categorical 
     # distributions to be sampled from at each time-step.
-=======
     def __init__(self, emb_size, hidden_size, seq_len, batch_size, vocab_size, num_layers, dp_keep_prob):
         """
         emb_size:     The number of units in the input embeddings
