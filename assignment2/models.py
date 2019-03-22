@@ -177,6 +177,9 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         # define embedding
         self.emb = torch.nn.Embedding(10000, emb_size)
 
+        # dropout
+        self.dropout = torch.nn.Dropout(p=1.-dp_keep_prob)
+
         # r_t
         self.w_r = clones(torch.nn.Linear(hidden_size, hidden_size), num_layers-1)
         self.w_r.insert(0, torch.nn.Linear(emb_size, hidden_size))
@@ -186,11 +189,6 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         self.w_z = clones(torch.nn.Linear(hidden_size,  hidden_size), num_layers-1)
         self.w_z.insert(0, torch.nn.Linear(emb_size, hidden_size))
         self.u_z = clones(torch.nn.Linear(hidden_size, hidden_size, False), num_layers)
-
-        # h_tilde
-        self.w_h_tilde = clones(torch.nn.Linear(hidden_size, hidden_size), num_layers-1)
-        self.w_h_tilde.insert(0, torch.nn.Linear(emb_size, hidden_size))
-        self.u_h_tilde = clones(torch.nn.Linear(hidden_size, hidden_size, False), num_layers)
 
         # h_t
         self.w_h = clones(torch.nn.Linear(hidden_size, hidden_size), num_layers-1)
@@ -203,7 +201,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
     def init_weights_uniform(self):
         torch.nn.init.uniform_(self.emb.weight, a=-0.1, b=0.1)
 
-        k = 1./ self.hidden_size
+        k = np.sqrt(1./ self.hidden_size)
         for i in range(1, self.num_layers):
             # initialize parameters for r_t
             torch.nn.init.uniform_(self.w_r[i].weight, -k, k)
@@ -214,11 +212,6 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
             torch.nn.init.uniform_(self.w_z[i].weight, -k, k)
             torch.nn.init.uniform_(self.w_z[i].bias, -k, k)
             torch.nn.init.uniform_(self.u_z[i].weight, -k, k)
-
-            # initialize parameters for h_tilde
-            torch.nn.init.uniform_(self.w_h_tilde[i].weight, -k, k)
-            torch.nn.init.uniform_(self.w_h_tilde[i].bias, -k, k)
-            torch.nn.init.uniform_(self.u_h_tilde[i].weight, -k, k)
 
             # initialize parameters for h
             torch.nn.init.uniform_(self.w_h[i].weight, -k, k)
@@ -237,12 +230,14 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         hidden_ = torch.empty(self.num_layers, self.batch_size, self.hidden_size)
         for t in range(self.seq_len):
             h_t = self.emb(inputs[t])
+            h_t = self.dropout(h_t)
 
             for i in range(self.num_layers):
                 r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](hidden[i]))
                 z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](hidden[i]))
-                h_tilde = torch.tanh(self.w_h_tilde[i](h_t) + self.u_h_tilde[i](r_t * hidden[i]))
+                h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
                 h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
+                h_t = self.dropout(h_t)
 
                 # use new hidden layer for next mini-batch
                 if t == self.seq_len - 1:
@@ -262,7 +257,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
             for i in self.num_layers:
                 r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](hidden[i]))
                 z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](hidden[i]))
-                h_tilde = F.tanh(self.w_h_tilde[i](h_t) + self.u_h_tilde[i](r_t * hidden[i]))
+                h_tilde = F.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
                 h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
 
             samples.append(F.softmax(self.w_y(h_t).argmax(dim=1)))
@@ -355,6 +350,7 @@ class MultiHeadedAttention(nn.Module):
         # Note: the only Pytorch modules you are allowed to use are nn.Linear 
         # and nn.Dropout
         self.n_heads = n_heads
+        self.dropout = torch.nn.Dropout(p=dropout)
         self.w_q = torch.nn.Linear(self.n_units, self.d_k)
         self.w_q = clones(self.w_q, n_heads)
 
@@ -378,7 +374,7 @@ class MultiHeadedAttention(nn.Module):
             x = torch.matmul(self.w_q[i](query), torch.transpose(self.w_k[i](key), -2, -1))
             a_i = torch.nn.functional.softmax(torch.full_like(x, -1e-9).masked_scatter(mask, x),
                                               dim=-1)
-            h_i = torch.matmul(a_i, self.w_v[i](value))
+            h_i = torch.matmul(self.dropout(a_i), self.w_v[i](value))
 
             h.append(h_i)
 
