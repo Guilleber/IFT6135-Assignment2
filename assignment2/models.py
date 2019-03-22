@@ -210,7 +210,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         self.hidden_size = hidden_size
 
         # define embedding
-        self.emb = torch.nn.Embedding(10000, emb_size)
+        self.emb = torch.nn.Embedding(vocab_size, emb_size)
 
         # dropout
         self.dropout = torch.nn.Dropout(p=1.-dp_keep_prob)
@@ -297,7 +297,8 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 h_tilde = F.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
                 h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
 
-            samples.append(F.softmax(self.w_y(h_t).argmax(dim=1)))
+            input = F.softmax(self.w_y(h_t).argmax(dim=1))
+            samples.append(input)
 
         samples = torch.stack(samples)
 
