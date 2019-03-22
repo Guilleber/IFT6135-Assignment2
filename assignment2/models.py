@@ -173,51 +173,25 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
     # Unlike for self.forward, you WILL need to apply the softmax activation 
     # function here in order to compute the parameters of the categorical 
     # distributions to be sampled from at each time-step.
-    def __init__(self, emb_size, hidden_size, seq_len, batch_size, vocab_size, num_layers, dp_keep_prob):
-        """
-        emb_size:     The number of units in the input embeddings
-        hidden_size:  The number of hidden units per layer
-        seq_len:      The length of the input sequences
-        vocab_size:   The number of tokens in the vocabulary (10,000 for Penn TreeBank)
-        num_layers:   The depth of the stack (i.e. the number of hidden layers at
-                      each time-step)
-        dp_keep_prob: The probability of *not* dropping out units in the
-                      non-recurrent connections.
-                      Do not apply dropout on recurrent connections.
-        """
-        super(RNN, self).__init__()
-        self.emb_size = emb_size
-        self.hidden_size = hidden_size
-        self.seq_len = seq_len
-        self.batch_size = batch_size
-        self.vocab_size = vocab_size
-        self.num_layers = num_layers
-        self.dp_prob = 1-dp_keep_prob
-        self.k = math.sqrt(1.0/self.hidden_size)
+    out = self.dropout(self.embedding(input))
+    samples = torch.zeros((generated_seq_len, self.batch_size)).float()
 
-        self.embedding = nn.Embedding(self.vocab_size, self.emb_size)
-        self.dropout = nn.Dropout(self.dp_prob)
-        self.rnn_layers = nn.ModuleList()
-        self.linears_out = nn.ModuleList()
-        for i in range(self.num_layers):
-            self.rnn_layers.append(nn.Linear(2*self.hidden_size if i != 0 else self.hidden_size+self.emb_size, self.hidden_size))
-            self.linears_out.append(nn.Linear(self.hidden_size, self.hidden_size if i != self.num_layers-1 else self.vocab_size))
-        # TODO ========================
-        # Initialization of the parameters of the recurrent and fc layers.
-        # Your implementation should support any number of stacked hidden layers
-        # (specified by num_layers), use an input embedding layer, and include fully
-        # connected layers with dropout after each recurrent layer.
-        # Note: you may use pytorch's nn.Linear, nn.Dropout, and nn.Embedding
-        # modules, but not recurrent modules.
-        #
-        # To create a variable number of parameter tensors and/or nn.Modules
-        # (for the stacked hidden layer), you may need to use nn.ModuleList or the
-        # provided clones function (as opposed to a regular python list), in order
-        # for Pytorch to recognize these parameters as belonging to this nn.Module
-        # and compute their gradients automatically. You're not obligated to use the
-        # provided clones function.
+    for t in range(generated_seq_len):
+        new_hidden = []
+        new_hidden.append(torch.tanh(self.dropout(self.rnn_layers[0](torch.cat([out, hidden[0]], 1)))))
+        out = F.relu(self.dropout(self.linears_out[0](new_hidden[-1])))
+        for i in range(1, self.num_layers):
+            new_hidden.append(torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1))))
+            out = self.dropout(new_hidden[-1])
+        hidden = torch.cat([h.unsqueeze(0) for h in new_hidden], 0)
+        out = self.linear_out(out)
 
-        return
+        samples[t] = torch.max(out, 2)[0]
+        input = samples[t]
+        out = self.embedding(input)
+
+    return samples
+
 
 # Problem 2
 class GRU(nn.Module): # Implement a stacked GRU RNN
