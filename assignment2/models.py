@@ -151,9 +151,9 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
     for t in range(self.seq_len):
         out = emb_inputs[t]
         new_hidden = []
-        new_hidden.append(torch.tanh(self.dropout(self.rnn_layers[0](torch.cat([out, hidden[0]], 1)))))
-        out = self.dropout(new_hidden[-1])
-        for i in range(1,self.num_layers):
+        #new_hidden.append(torch.tanh(self.rnn_layers[0](torch.cat([out, hidden[0]], 1))))
+        #out = self.dropout(new_hidden[-1])
+        for i in range(0,self.num_layers):
                 new_hidden.append(torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1))))
                 out = self.dropout(new_hidden[-1])
         hidden = torch.cat([h.unsqueeze(0) for h in new_hidden], 0)
@@ -178,9 +178,9 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
 
     for t in range(generated_seq_len):
         new_hidden = []
-        new_hidden.append(torch.tanh(self.dropout(self.rnn_layers[0](torch.cat([out, hidden[0]], 1)))))
-        out = F.relu(self.dropout(self.linears_out[0](new_hidden[-1])))
-        for i in range(1, self.num_layers):
+        #new_hidden.append(torch.tanh(self.dropout(self.rnn_layers[0](torch.cat([out, hidden[0]], 1)))))
+        #out = self.dropout(new_hidden[-1])
+        for i in range(0, self.num_layers):
             new_hidden.append(torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1))))
             out = self.dropout(new_hidden[-1])
         hidden = torch.cat([h.unsqueeze(0) for h in new_hidden], 0)
