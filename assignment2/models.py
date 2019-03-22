@@ -70,10 +70,9 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
     self.embedding = nn.Embedding(self.vocab_size, self.emb_size)
     self.dropout = nn.Dropout(self.dp_prob)
     self.rnn_layers = nn.ModuleList()
-    self.linears_out = nn.ModuleList()
+    self.linear_out = nn.Linear(self.hidden_size, self.vocab_size)
     for i in range(self.num_layers):
         self.rnn_layers.append(nn.Linear(2*self.hidden_size if i != 0 else self.hidden_size+self.emb_size, self.hidden_size))
-        self.linears_out.append(nn.Linear(self.hidden_size, self.hidden_size if i != self.num_layers-1 else self.vocab_size))
     # TODO ========================
     # Initialization of the parameters of the recurrent and fc layers. 
     # Your implementation should support any number of stacked hidden layers 
@@ -101,12 +100,9 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
     for i in range(self.num_layers):
         nn.init.uniform_(self.rnn_layers[i].weight, -self.k, self.k)
         nn.init.uniform_(self.rnn_layers[i].bias, -self.k, self.k)
-        if i == self.num_layers:
-            nn.init.uniform_(self.linears_out[i].weight, -0.1, 0.1)
-            nn.init.constant_(self.linears_out[i].bias, 0.0)
-        else:
-            nn.init.uniform_(self.linears_out[i].weight, -self.k, self.k)
-            nn.init.uniform_(self.linears_out[i].bias, -self.k, self.k)
+        
+    nn.init.uniform_(self.linear_out.weight, -0.1, 0.1)
+    nn.init.constant_(self.linear_out.bias, 0.0)
     return
 
   def init_hidden(self):
@@ -162,7 +158,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
                 out = self.dropout(new_hidden[-1])
         hidden = torch.cat([h.unsqueeze(0) for h in new_hidden], 0)
         
-        logits.append(self.linears_out[-1](out))
+        logits.append(self.linear_out(out))
         
     return torch.cat([t.unsqueeze(0) for t in logits], 0), hidden
 
@@ -200,11 +196,12 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
         out = self.dropout(new_hidden[-1])
         for i in range(1,self.num_layers):
                 new_hidden.append(torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1))))
-                out = F.relu(self.dropout(self.linears_out[i](new_hidden[-1])))
+                out = self.dropout(new_hidden[-1])
         hidden = torch.cat([h.unsqueeze(0) for h in new_hidden], 0)
+        out = self.linear_out(out)
         
-        samples[i] = torch.max(out, 2)[0]
-        input = samples[i]
+        samples[t] = torch.max(out, 2)[0]
+        input = samples[t]
         out = self.embedding(input)   
    
     return samples
