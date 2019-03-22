@@ -146,6 +146,8 @@ parser.add_argument('--evaluate', action='store_true',
                     ONCE for each model setting, and only after you've \
                     completed ALL hyperparameter tuning on the validation set.\
                     Note we are not requiring you to do this.")
+parser.add_argument('--short_exp', action='store_true',
+                    help="short experiments (few epochs) to find some relevant hyperparameters.")
 
 # DO NOT CHANGE THIS (setting the random seed makes experiments deterministic,
 # which helps for reproducibility)
@@ -440,6 +442,8 @@ clock=[]
 # In debug mode, only run one epoch
 if args.debug:
     num_epochs = 1
+elif args.short_exp:
+    num_epochs = 6 
 else:
     num_epochs = args.num_epochs
 
