@@ -23,5 +23,6 @@ for (root, dirs, files) in os.walk(args.results_dir):
 		if(d[0]==args.architecture[0]):
 			x=np.load(os.path.join(root,d)+'/learning_curves.npy')[()]
 			plt.plot(x['clock'],x['val_ppls'],colors[i])
+			plt.label(d)
 			i+=1			
 
