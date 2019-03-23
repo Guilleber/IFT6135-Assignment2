@@ -410,10 +410,11 @@ class MultiHeadedAttention(nn.Module):
         # generating the "attention values" (i.e. A_i in the .tex)
         # Also apply dropout to the attention values.
         h = []
+        inv_mask = mask == 0.
         for i in range(self.n_heads):
             x = torch.matmul(self.w_q[i](query), torch.transpose(self.w_k[i](key), -2, -1))
             x /= self.d_k
-            a_i = torch.nn.functional.softmax(torch.full_like(x, -1e-9).masked_scatter_(mask, x),
+            a_i = torch.nn.functional.softmax(x.masked_fill_(inv_mask, -1e-9),
                                               dim=-1)
             a_i = self.dropout(a_i)
             h_i = torch.matmul(a_i, self.w_v[i](value))
