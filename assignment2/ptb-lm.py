@@ -136,7 +136,7 @@ parser.add_argument('--dp_keep_prob', type=float, default=0.35,
 
 # Arguments that you may want to make use of / implement more code for
 parser.add_argument('--debug', action='store_true')
-parser.add_argument('--save_dir', type=str, default='Results',
+parser.add_argument('--save_dir', type=str, default='long_exp',
                     help='path to save the experimental config, logs, model \
                     This is automatically generated based on the command line \
                     arguments you pass and only needs to be set if you want a \
@@ -157,6 +157,9 @@ parser.add_argument('--seed', type=int, default=1111,
 args = parser.parse_args()
 argsdict = args.__dict__
 argsdict['code_file'] = sys.argv[0]
+
+if args.short_exp:
+    args.save_dir='short_exp'
 
 if not os.path.isdir(args.save_dir):
     os.mkdir(args.save_dir)
@@ -443,7 +446,7 @@ clock=[]
 if args.debug:
     num_epochs = 1
 elif args.short_exp:
-    num_epochs = 6 
+    num_epochs = 6
 else:
     num_epochs = args.num_epochs
 
