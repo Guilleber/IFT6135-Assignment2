@@ -262,29 +262,27 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
     def forward(self, inputs, hidden):
         logits = []
-        device = torch.device('cuda') if inputs.is_cuda else torch.device('cpu')
-        hidden_ = torch.empty(self.num_layers, self.batch_size, self.hidden_size, device=device)
+        h_prev = hidden
         for t in range(self.seq_len):
             h_t = self.emb(inputs[t])
             h_t = self.dropout(h_t)
+            h_prev_ = []
 
             for i in range(self.num_layers):
-                r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](hidden[i]))
-                z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](hidden[i]))
-                h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
+                r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](h_prev[i]))
+                z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](h_prev[i]))
+                h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * h_prev[i]))
                 h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
-
-                # use new hidden layer for next mini-batch
-                if t == self.seq_len - 1:
-                    hidden_[i] = h_t
+                h_prev_.append(h_t)
 
                 h_t = self.dropout(h_t)
 
+            h_prev = torch.stack(h_prev_)
             logits.append(self.w_y(h_t))
 
         logits = torch.stack(logits)
 
-        return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden_
+        return logits.view(self.seq_len, self.batch_size, self.vocab_size), h_prev
 
     def generate(self, input, hidden, generated_seq_len):
         samples = []
@@ -414,7 +412,6 @@ class MultiHeadedAttention(nn.Module):
                                               dim=-1)
             a_i = self.dropout(a_i)
             h_i = torch.matmul(a_i, self.w_v[i](value))
-            h_i = h_i
 
             h.append(h_i)
 
