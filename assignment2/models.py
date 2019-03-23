@@ -272,7 +272,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](h_prev[i]))
                 z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](h_prev[i]))
                 h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * h_prev[i]))
-                h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
+                h_t = (1. - z_t) * h_prev[i] + z_t * h_tilde
                 h_prev_.append(h_t)
 
                 h_t = self.dropout(h_t)
@@ -286,15 +286,19 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
     def generate(self, input, hidden, generated_seq_len):
         samples = []
+        h_prev = hidden
         for t in range(generated_seq_len):
             h_t = self.emb(input)
+            h_prev_ = []
 
             for i in self.num_layers:
-                r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](hidden[i]))
-                z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](hidden[i]))
-                h_tilde = F.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
-                h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
+                r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](h_prev[i]))
+                z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](h_prev[i]))
+                h_tilde = F.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * h_prev[i]))
+                h_t = (1. - z_t) * h_prev[i] + z_t * h_tilde
+                h_prev_.append(h_t)
 
+            h_prev = torch.stack(h_prev_)
             input = F.softmax(self.w_y(h_t).argmax(dim=1))
             samples.append(input)
 
