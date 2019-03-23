@@ -13,8 +13,8 @@ parser.add_argument('--architecture', type=str, default='TRANSFORMER',
 
 args = parser.parse_args()
 
-colors = ["aquamarine","Maroon","Light Salmon","Medium Violet Red","Orange Red","Orange","Orchid","Medium Blue","Lime,Medium Purple","Olive","red","Sienna","yellow",
-"Hot pink","cyan","black","deep pink","dark grey","Dark Sea Green"]
+colors = ["aquamarine","Maroon","Light Salmon","Medium Violet Red","Orange Red","Orange","Orchid","Medium Blue","Lime Medium Purple","Olive","red","Sienna","yellow",
+"Hot pink","cyan","black","deep pink","dark grey","Dark Sea Green","burlywood"]
 
 i=0
 
@@ -23,6 +23,7 @@ for (root, dirs, files) in os.walk(args.results_dir):
 		if(d[0]==args.architecture[0]):
 			x=np.load(os.path.join(root,d)+'/learning_curves.npy')[()]
 			plt.plot(x['clock'],x['val_ppls'],colors[i])
+			plt.title(args.architecture+" hyperparameters search")
 			plt.label(d)
 			i+=1			
 
