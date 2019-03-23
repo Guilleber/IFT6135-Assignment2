@@ -62,7 +62,28 @@ def average_Lt(model, data, is_train=False, lr=1.0):
 
 
 ########################### 5.2 ###########################################################
+#Setting arguments
+def setattrs(_self, **kwargs):
+    for k,v in kwargs.items():
+        setattr(_self, k, v)
 
+#The three models
+setattrs(args, model= 'RNN', optimizer='ADAM', initial_lr=0.0001, batch_size=20, seq_len=35, hidden_size=1500, num_layers=2, dp_keep_prob=0.35)
+setattrs(args, model= 'GRU', optimizer='SGD_LR_SCHEDULE', initial_lr=10, batch_size=20, seq_len=35, hidden_size=1500, num_layers=2, dp_keep_prob=0.35)
+setattrs(args, model='TRANSFORMER', optimizer='SGD_LR_SCHEDULE', initial_lr=20, batch_size=128, seq_len=35, hidden_size=512, num_layers=6, dp_keep_prob=0.9)
+
+#To get the hidden layer for the transformer, I added the hidden layer as an output here
+class FullTransformer(nn.Module):
+    def __init__(self, transformer_stack, embedding, n_units, vocab_size):
+        super(FullTransformer, self).__init__()
+        self.transformer_stack = transformer_stack
+        self.embedding = embedding
+        self.output_layer = nn.Linear(n_units, vocab_size)
+    def forward(self, input_sequence, mask):
+        embeddings = self.embedding(input_sequence)
+        return F.log_softmax(self.output_layer(self.transformer_stack(embeddings, mask)), dim=-1), self.output_layer(self.transformer_stack(embeddings, mask))
+
+#The function for 5.2
 def grad_mean_norm(model, data, is_train=False, lr=1.0):
 
     #Load one mini batch
@@ -74,15 +95,28 @@ def grad_mean_norm(model, data, is_train=False, lr=1.0):
     model.eval()
 
     if args.model != 'TRANSFORMER':
-        hidden = model.init_hidden()
-        hidden = hidden.to(device)
-
         #extract weight and hidden values of last layer
         l = args.batch_size*args.seq_len
         grad_moy = torch.zeros(args.hidden_size, vocab_size)
         grad_norm = torch.zeros(args.batch_size)
+
+        inputs = torch.from_numpy(mini_batch.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda() nn.CrossEntropyLoss(outputs, targets)
+        hidden = model.init_hidden()
+        hidden = hidden.to(device)
+        hidden = repackage_hidden(hidden)
+        outputs, hidden = model(inputs, hidden)
+
         w_last = model.linears_out[1].weight
         h_last = hidden[1,:,:] 
+    
+    else:
+        batch = Batch(torch.from_numpy(mini_batch).long().to(device))
+        model.zero_grad()
+        outputs, hidden = model.forward(batch.data, batch.mask).transpose(1,0)
+        
+        h_last = torch.cat(hidden, dim=-1)
+        w_last = model.output_layer.weight
+
     
     for t in range(args.batch_size):
         h_t = h_last[t,:]
@@ -101,7 +135,7 @@ def grad_mean_norm(model, data, is_train=False, lr=1.0):
     plt.ylabel('gradL_t')
     plot = plt
 
-    return grad_moy, grad_norm, plot 
+    return grad_moy, grad_norm, plot
 
 
 
