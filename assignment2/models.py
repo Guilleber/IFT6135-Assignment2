@@ -282,7 +282,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
         logits = torch.stack(logits)
 
-        return logits.view(self.seq_len, self.batch_size, self.vocab_size), h_prev
+        return logits, h_prev
 
     def generate(self, input, hidden, generated_seq_len):
         samples = []
