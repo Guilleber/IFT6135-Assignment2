@@ -413,7 +413,7 @@ class MultiHeadedAttention(nn.Module):
         inv_mask = mask == 0.
         for i in range(self.n_heads):
             x = torch.matmul(self.w_q[i](query), torch.transpose(self.w_k[i](key), -2, -1))
-            x /= self.d_k
+            x /= np.sqrt(self.d_k)
             a_i = torch.nn.functional.softmax(x.masked_fill_(inv_mask, -1e9),
                                               dim=-1)
             a_i = self.dropout(a_i)
