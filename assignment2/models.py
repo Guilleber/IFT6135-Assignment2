@@ -71,9 +71,8 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
     self.dropout = nn.Dropout(self.dp_prob)
     self.rnn_layers = nn.ModuleList()
     self.linear_out = nn.Linear(self.hidden_size, self.vocab_size)
-    self.linear_emb = nn.Linear(self.emb_size, self.hidden_size)
     for i in range(self.num_layers):
-        self.rnn_layers.append(nn.Linear(2*self.hidden_size, self.hidden_size))
+        self.rnn_layers.append(nn.Linear(2*self.hidden_size if i != 0 else self.hidden_size+self.emb_size, self.hidden_size))
     # TODO ========================
     # Initialization of the parameters of the recurrent and fc layers. 
     # Your implementation should support any number of stacked hidden layers 
@@ -104,8 +103,6 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
         
     nn.init.uniform_(self.linear_out.weight, -0.1, 0.1)
     nn.init.constant_(self.linear_out.bias, 0.0)
-    nn.init.uniform_(self.linear_emb.weight, -self.k, self.k)
-    nn.init.uniform_(self.linear_emb.bias, -self.k, self.k)
     return
 
   def init_hidden(self):
@@ -147,7 +144,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
               if you are curious.
                     shape: (num_layers, batch_size, hidden_size)
     """
-    emb_inputs = self.dropout(self.linear_emb(self.embedding(inputs.view(self.seq_len*self.batch_size))).view(self.seq_len, self.batch_size, self.hidden_size))
+    emb_inputs = self.dropout(self.embedding(inputs.view(self.seq_len*self.batch_size)).view(self.seq_len, self.batch_size, self.emb_size))
     
     logits = []
     
@@ -176,7 +173,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
     # Unlike for self.forward, you WILL need to apply the softmax activation 
     # function here in order to compute the parameters of the categorical 
     # distributions to be sampled from at each time-step.
-    out = self.dropout(self.linear_emb(self.embedding(input)))
+    out = self.dropout(self.embedding(input))
     samples = torch.zeros((generated_seq_len, self.batch_size)).float()
 
     for t in range(generated_seq_len):
@@ -191,7 +188,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
 
         samples[t] = torch.max(out, 2)[0]
         input = samples[t]
-        out = self.dropout(self.linear_emb(self.embedding(input)))
+        out = self.dropout(self.embedding(input))
 
     return samples
 
