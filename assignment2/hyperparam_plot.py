@@ -26,7 +26,7 @@ args = parser.parse_args()
 
 
 colors = ["aquamarine","Maroon","Orange","Orchid","Olive","red","Sienna","yellow",
-"pink","cyan","black","grey","green","burlywood","fuchsia"]
+"pink","cyan","black","grey","green","burlywood","fuchsia","purple","plum","teal","tan"]
 
 if args.exp == 's':
     args.results_dir='short_exp'
