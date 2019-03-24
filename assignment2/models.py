@@ -262,27 +262,26 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
     def forward(self, inputs, hidden):
         logits = []
-        h_prev = hidden
         for t in range(self.seq_len):
             h_t = self.emb(inputs[t])
             h_t = self.dropout(h_t)
-            h_prev_ = []
+            h_prev = []
 
             for i in range(self.num_layers):
-                r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](h_prev[i]))
-                z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](h_prev[i]))
-                h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * h_prev[i]))
-                h_t = (1. - z_t) * h_prev[i] + z_t * h_tilde
-                h_prev_.append(h_t)
+                r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](hidden[i]))
+                z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](hidden[i]))
+                h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
+                h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
+                h_prev.append(h_t)
 
                 h_t = self.dropout(h_t)
 
-            h_prev = torch.stack(h_prev_)
+            hidden = torch.stack(h_prev)
             logits.append(self.w_y(h_t))
 
         logits = torch.stack(logits)
 
-        return logits, h_prev
+        return logits, hidden
 
     def generate(self, input, hidden, generated_seq_len):
         samples = []
