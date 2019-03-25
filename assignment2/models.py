@@ -214,7 +214,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         self.emb = torch.nn.Embedding(self.vocab_size, self.emb_size)
 
         # dropout
-        self.dropout = clones(torch.nn.Dropout(p=1.-dp_keep_prob), self.num_layers+1)
+        self.dropout = torch.nn.Dropout(p=1.-dp_keep_prob)
 
         # r_t
         self.w_r = clones(torch.nn.Linear(hidden_size, hidden_size), self.num_layers-1)
@@ -264,26 +264,37 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
     def forward(self, inputs, hidden):
         logits = []
-        x = self.emb(inputs)
         for t in range(self.seq_len):
-            h_t = x[t] #self.emb(inputs[t])
-            h_t = self.dropout[0](h_t)
+            h_t = self.emb(inputs[t])
+            h_t = self.dropout(h_t)
             new_hidden = []
 
-            for i in range(self.num_layers):
+            """for i in range(self.num_layers):
                 r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](hidden[i]))
                 z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](hidden[i]))
                 h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
                 h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
                 new_hidden.append(h_t)
 
-                h_t = self.dropout[i+1](h_t)
+                h_t = self.dropout(h_t)"""
+            r_t = torch.sigmoid(self.w_r[0](h_t) + self.u_r[0](hidden[0]))
+            z_t = torch.sigmoid(self.w_z[0](h_t) + self.u_z[0](hidden[0]))
+            h_tilde = torch.tanh(self.w_h[0](h_t) + self.u_h[0](r_t * hidden[0]))
+            h_t = (1. - z_t) * hidden[0] + z_t * h_tilde
+            new_hidden.append(h_t)
+            h_t = self.dropout(h_t)
+            r_t = torch.sigmoid(self.w_r[1](h_t) + self.u_r[1](hidden[1]))
+            z_t = torch.sigmoid(self.w_z[1](h_t) + self.u_z[1](hidden[1]))
+            h_tilde = torch.tanh(self.w_h[1](h_t) + self.u_h[1](r_t * hidden[1]))
+            h_t = (1. - z_t) * hidden[1] + z_t * h_tilde
+            new_hidden.append(h_t)
+            h_t = self.dropout(h_t)
 
             hidden = torch.stack(new_hidden)
-            #hidden = torch.cat(new_hidden).view(self.num_layers, self.batch_size, self.hidden_size)
+            # hidden = torch.cat(new_hidden).view(self.num_layers, self.batch_size, self.hidden_size)
             logits.append(self.w_y(h_t))
 
-        #logits = torch.stack(logits)
+        # logits = torch.stack(logits)
         logits = torch.cat(logits).contiguous()
 
         return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
