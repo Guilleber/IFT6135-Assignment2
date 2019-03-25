@@ -211,29 +211,29 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         self.hidden_size = hidden_size
 
         # define embedding
-        self.emb = torch.nn.Embedding(vocab_size, emb_size)
+        self.emb = torch.nn.Embedding(self.vocab_size, self.emb_size)
 
         # dropout
         self.dropout = clones(torch.nn.Dropout(p=1.-dp_keep_prob), self.num_layers+1)
 
         # r_t
-        self.w_r = clones(torch.nn.Linear(hidden_size, hidden_size), num_layers-1)
+        self.w_r = clones(torch.nn.Linear(hidden_size, hidden_size), self.num_layers-1)
         self.w_r.insert(0, torch.nn.Linear(emb_size, hidden_size))
-        self.u_r = clones(torch.nn.Linear(hidden_size, hidden_size, True), num_layers)
+        self.u_r = clones(torch.nn.Linear(hidden_size, hidden_size, False), self.num_layers)
 
         # z_t
-        self.w_z = clones(torch.nn.Linear(hidden_size,  hidden_size), num_layers-1)
+        self.w_z = clones(torch.nn.Linear(hidden_size,  hidden_size), self.num_layers-1)
         self.w_z.insert(0, torch.nn.Linear(emb_size, hidden_size))
-        self.u_z = clones(torch.nn.Linear(hidden_size, hidden_size, True), num_layers)
+        self.u_z = clones(torch.nn.Linear(hidden_size, hidden_size, False), self.num_layers)
 
         # h_t
-        self.w_h = clones(torch.nn.Linear(hidden_size, hidden_size), num_layers-1)
+        self.w_h = clones(torch.nn.Linear(hidden_size, hidden_size), self.num_layers-1)
         self.w_h.insert(0, torch.nn.Linear(emb_size, hidden_size))
-        self.u_h = clones(torch.nn.Linear(hidden_size, hidden_size, True), num_layers)
+        self.u_h = clones(torch.nn.Linear(hidden_size, hidden_size, False), self.num_layers)
 
         # y
         self.w_y = torch.nn.Linear(hidden_size, vocab_size)
-        self.gru = torch.nn.GRU(self.emb_size, self.hidden_size, self.num_layers, dropout=1.-dp_keep_prob, bidirectional=False)
+        # self.gru = torch.nn.GRU(self.emb_size, self.hidden_size, self.num_layers, dropout=1.-dp_keep_prob, bidirectional=False)
 
     def init_weights_uniform(self):
         self.emb.weigh.data.uniform_(-0.1, 0.1)
@@ -264,8 +264,9 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
     def forward(self, inputs, hidden):
         logits = []
+        x = self.emb(inputs)
         for t in range(self.seq_len):
-            h_t = self.emb(inputs[t])
+            h_t = x[t] #self.emb(inputs[t])
             h_t = self.dropout[0](h_t)
             new_hidden = []
 
