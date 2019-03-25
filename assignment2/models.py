@@ -211,7 +211,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         self.hidden_size = hidden_size
 
         # define embedding
-        self.emb = torch.nn.Embedding(self.vocab_size, self.emb_size)
+        self.emb = torch.nn.Embedding(self.vocab_size, self.emb_size, max)
 
         # dropout
         self.dropout = torch.nn.Dropout(p=1.-dp_keep_prob)
@@ -265,7 +265,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
     def forward(self, inputs, hidden):
         logits = []
         for t in range(self.seq_len):
-            h_in = self.emb(inputs[t])
+            h_in = self.emb(inputs[t]) * math.sqrt(self.emb_size)
             new_hidden = []
 
             for i in range(self.num_layers):
