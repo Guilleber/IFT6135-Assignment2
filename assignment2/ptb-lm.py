@@ -49,7 +49,7 @@
 #      perplexities:
 #                  RNN: train:  120  val: 157
 #                  GRU: train:   65  val: 104
-#          TRANSFORMER:  train:  67  val: 146
+#          TRANSFORMER:  train:  77  val: 152
 #    - For Problem 4.2 (exploration of optimizers), you will make use of the
 #      experiments from 4.1, and should additionally run the following experiments:
 #          --model=RNN --optimizer=SGD --initial_lr=0.0001 --batch_size=20 --seq_len=35 --hidden_size=1500 --num_layers=2 --dp_keep_prob=0.35
@@ -106,8 +106,7 @@ parser = argparse.ArgumentParser(description='PyTorch Penn Treebank Language Mod
 
 # Arguments you may need to set to run different experiments in 4.1 & 4.2.
 parser.add_argument('--data', type=str, default='data',
-                    help='location of the data corpus. We suggest you change the default\
-                    here, rather than passing as an argument, to avoid long file paths.')
+                    help='location of the data corpus')
 parser.add_argument('--model', type=str, default='GRU',
                     help='type of recurrent net (RNN, GRU, TRANSFORMER)')
 parser.add_argument('--optimizer', type=str, default='SGD_LR_SCHEDULE',
@@ -168,8 +167,8 @@ if not os.path.isdir(args.save_dir):
 # Use the model, optimizer, and the flags passed to the script to make the
 # name for the experimental dir
 print("\n########## Setting Up Experiment ######################")
-flags = [flag.lstrip('--').replace('/', '').replace('\\', '') for flag in sys.argv[1:]]
-experiment_path = os.path.join(args.save_dir+'_'.join([argsdict['model'],
+flags = [flag.lstrip('--') for flag in sys.argv[1:]]
+experiment_path = os.path.join(args.save_dir+'/'+'_'.join([argsdict['model'],
                                          argsdict['optimizer']]
                                          + flags))
 
@@ -204,7 +203,7 @@ else:
 
 ###############################################################################
 #
-# LOADING & PROCESSING
+# DATA LOADING & PROCESSING
 #
 ###############################################################################
 
@@ -422,7 +421,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
                         p.data.add_(-lr, p.grad.data)
             if step % (epoch_size // 10) == 10:
                 print('step: '+ str(step) + '\t' \
-                    + "loss (sum over all examples' seen this epoch):" + str(costs) + '\t' \
+                    + 'loss: '+ str(costs) + '\t' \
                     + 'speed (wps):' + str(iters * model.batch_size / (time.time() - start_time)))
     return np.exp(costs / iters), losses
 
