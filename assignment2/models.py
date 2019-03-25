@@ -255,9 +255,9 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
             torch.nn.init.uniform_(self.w_h[i].bias, -k, k)
             #torch.nn.init.uniform_(self.u_h[i].weight, -k, k)
 
-            # initialize parameters for y
-            torch.nn.init.uniform_(self.w_y.weight, -0.1, 0.1)
-            torch.nn.init.uniform_(self.w_y.bias, 0.)
+        # initialize parameters for y
+        torch.nn.init.uniform_(self.w_y.weight, -0.1, 0.1)
+        torch.nn.init.uniform_(self.w_y.bias, 0.)
 
     def init_hidden(self):
         return torch.zeros(self.num_layers, self.batch_size, self.hidden_size)
