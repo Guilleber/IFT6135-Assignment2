@@ -71,8 +71,10 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
     self.dropout = nn.Dropout(self.dp_prob)
     self.rnn_layers = nn.ModuleList()
     self.linear_out = nn.Linear(self.hidden_size, self.vocab_size)
-    for i in range(self.num_layers):
-        self.rnn_layers.append(nn.Linear(2*self.hidden_size if i != 0 else self.hidden_size+self.emb_size, self.hidden_size))
+    """for i in range(self.num_layers):
+        self.rnn_layers.append(nn.Linear(2*self.hidden_size if i != 0 else self.hidden_size+self.emb_size, self.hidden_size))"""
+    self.rnn_layers = clones(nn.Linear(self.hidden_size, self.hidden_size), num_layers-1)
+    self.rnn_layers.insert(0, nn.Linear(self.emb_size, self.hidden_size))
     # TODO ========================
     # Initialization of the parameters of the recurrent and fc layers. 
     # Your implementation should support any number of stacked hidden layers 
@@ -144,7 +146,6 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
               if you are curious.
                     shape: (num_layers, batch_size, hidden_size)
     """
-    #emb_inputs = self.dropout(self.embedding(inputs.view(self.seq_len*self.batch_size)).view(self.seq_len, self.batch_size, self.emb_size))
     emb_inputs = self.dropout(self.embedding(inputs))
     logits = []
     
