@@ -269,26 +269,14 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
             h_t = self.dropout(h_t)
             new_hidden = []
 
-            """for i in range(self.num_layers):
+            for i in range(self.num_layers):
                 r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](hidden[i]))
                 z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](hidden[i]))
                 h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
                 h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
                 new_hidden.append(h_t)
 
-                h_t = self.dropout(h_t)"""
-            r_t = torch.sigmoid(self.w_r[0](h_t) + self.u_r[0](hidden[0]))
-            z_t = torch.sigmoid(self.w_z[0](h_t) + self.u_z[0](hidden[0]))
-            h_tilde = torch.tanh(self.w_h[0](h_t) + self.u_h[0](r_t * hidden[0]))
-            h_t = (1. - z_t) * hidden[0] + z_t * h_tilde
-            new_hidden.append(h_t)
-            h_t = self.dropout(h_t)
-            r_t = torch.sigmoid(self.w_r[1](h_t) + self.u_r[1](hidden[1]))
-            z_t = torch.sigmoid(self.w_z[1](h_t) + self.u_z[1](hidden[1]))
-            h_tilde = torch.tanh(self.w_h[1](h_t) + self.u_h[1](r_t * hidden[1]))
-            h_t = (1. - z_t) * hidden[1] + z_t * h_tilde
-            new_hidden.append(h_t)
-            h_t = self.dropout(h_t)
+                h_t = self.dropout(h_t)
 
             hidden = torch.stack(new_hidden)
             # hidden = torch.cat(new_hidden).view(self.num_layers, self.batch_size, self.hidden_size)
