@@ -233,7 +233,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
         # y
         self.w_y = torch.nn.Linear(hidden_size, vocab_size)
-        self.gru = torch.nn.GRU(self.emb_size, self.hidden_size, self.num_layers, dropout=1.-dp_keep_prob, bidirectional=False)
+        #self.gru = torch.nn.GRU(self.emb_size, self.hidden_size, self.num_layers, dropout=1.-dp_keep_prob, bidirectional=False)
 
     def init_weights_uniform(self):
         self.emb.weigh.data.uniform_(-0.1, 0.1)
@@ -265,24 +265,23 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
     def forward(self, inputs, hidden):
         logits = []
         for t in range(self.seq_len):
-            h_in = self.emb(inputs)
+            h_in = self.emb(inputs[t])
             new_hidden = []
 
-            """for i in range(self.num_layers):
+            for i in range(self.num_layers):
                 h_in = self.dropout(h_in)
                 r_t = torch.sigmoid(self.w_r[i](h_in) + self.u_r[i](hidden[i]))
                 z_t = torch.sigmoid(self.w_z[i](h_in) + self.u_z[i](hidden[i]))
                 h_tilde = torch.tanh(self.w_h[i](h_in) + self.u_h[i](r_t * hidden[i]))
                 h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
                 new_hidden.append(h_t)
-                h_in = h_t"""
+                h_in = h_t
 
-            #out = self.dropout(new_hidden[-1])
-            out, hidden = self.gru(h_in, hidden)
+            out = self.dropout(new_hidden[-1])
             out = self.dropout(out)
             #hidden = torch.stack(new_hidden)
             # hidden = torch.cat(new_hidden).view(self.num_layers, self.batch_size, self.hidden_size)
-            logits.append(self.w_y(out)[t])
+            logits.append(self.w_y(out))
 
         # logits = torch.stack(logits)
         logits = torch.cat(logits)
