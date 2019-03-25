@@ -265,8 +265,9 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
     def forward(self, inputs, hidden):
         logits = []
         out, h = self.gru(self.emb(inputs), hidden)
+        out = self.dropout(out)
         for t in range(self.seq_len):
-            h_t = self.emb(inputs[t])
+            """h_t = self.emb(inputs[t])
             h_t = self.dropout(h_t)
             new_hidden = []
 
@@ -279,7 +280,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
                 h_t = self.dropout(h_t)
 
-            hidden = torch.stack(new_hidden)
+            hidden = torch.stack(new_hidden)"""
             #hidden = torch.cat(new_hidden).view(self.num_layers, self.batch_size, self.hidden_size)
             #logits.append(self.w_y(h_t))
             logits.append(self.w_y(out[t]))
