@@ -219,17 +219,17 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         # r_t
         self.w_r = clones(torch.nn.Linear(hidden_size, hidden_size), num_layers-1)
         self.w_r.insert(0, torch.nn.Linear(emb_size, hidden_size))
-        self.u_r = clones(torch.nn.Linear(hidden_size, hidden_size, False), num_layers)
+        self.u_r = clones(torch.nn.Linear(hidden_size, hidden_size, True), num_layers)
 
         # z_t
         self.w_z = clones(torch.nn.Linear(hidden_size,  hidden_size), num_layers-1)
         self.w_z.insert(0, torch.nn.Linear(emb_size, hidden_size))
-        self.u_z = clones(torch.nn.Linear(hidden_size, hidden_size, False), num_layers)
+        self.u_z = clones(torch.nn.Linear(hidden_size, hidden_size, True), num_layers)
 
         # h_t
         self.w_h = clones(torch.nn.Linear(hidden_size, hidden_size), num_layers-1)
         self.w_h.insert(0, torch.nn.Linear(emb_size, hidden_size))
-        self.u_h = clones(torch.nn.Linear(hidden_size, hidden_size, False), num_layers)
+        self.u_h = clones(torch.nn.Linear(hidden_size, hidden_size, True), num_layers)
 
         # y
         self.w_y = torch.nn.Linear(hidden_size, vocab_size)
