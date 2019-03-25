@@ -275,6 +275,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 h_tilde = torch.tanh(self.w_h[i](h_in) + self.u_h[i](r_t * hidden[i]))
                 h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
                 new_hidden.append(h_t)
+                h_in = h_t
 
             out = self.dropout(new_hidden[-1])
             hidden = torch.stack(new_hidden)
