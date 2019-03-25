@@ -94,32 +94,21 @@ def grad_mean_norm(model, valid_data, vocab_size):
         
     model.eval()
 
-    if args.model != 'TRANSFORMER':
-        #extract weight and hidden values of last layer
-        grad_moy = torch.zeros(args.hidden_size, vocab_size)
-        grad_norm = torch.zeros(args.batch_size)
 
-        inputs = torch.from_numpy(mini_batch.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda() nn.CrossEntropyLoss(outputs, targets)
-        hidden = model.init_hidden()
-        hidden = hidden.to(device)
-        hidden = repackage_hidden(hidden)
-        outputs, hidden = model(inputs, hidden)
+    #extract weight and hidden values of last layer
+    grad_moy = torch.zeros(args.hidden_size, vocab_size)
+    grad_norm = torch.zeros(args.batch_size)
 
-        w_last = model.linears_out[1].weight
-        h_last = hidden[1,:,:] 
-        n = args.batch_size
+    inputs = torch.from_numpy(mini_batch.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda() nn.CrossEntropyLoss(outputs, targets)
+    hidden = model.init_hidden()
+    hidden = hidden.to(device)
+    hidden = repackage_hidden(hidden)
+    outputs, hidden = model(inputs, hidden)
     
+    w_last = model.linears_out[1].weight
+    h_last = hidden[1,:,:] 
+    n = args.batch_size
     
-    else:
-        batch = Batch(torch.from_numpy(mini_batch).long().to(device))
-        model.zero_grad()
-
-        outputs, h_last = model.forward(batch.data, batch.mask) #outputs and h_last shape is batch_size*vocab_size
-        n = args.batch_size*args.seq_len
-        h_last = h_last.reshape(n,vocab_size)
-        w_last = model.output_layer.weight #w_last shape is 
-
-
     for t in range(n):
         h_t = h_last[k,t,:]
         exp_term = torch.exp(torch.mm(w_last,h_t.reshape(args.hidden_size,1)))
