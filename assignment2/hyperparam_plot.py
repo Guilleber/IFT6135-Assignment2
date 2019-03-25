@@ -26,7 +26,7 @@ args = parser.parse_args()
 
 
 colors = ["aquamarine","Maroon","Orange","Orchid","Olive","red","Sienna","yellow",
-"pink","cyan","black","grey","green","burlywood","fuchsia","purple","plum","teal","tan"]
+"pink","cyan","black","grey","green","burlywood","fuchsia","purple","plum","teal","tan","Khaki","indigo"]
 
 if args.exp == 's':
     args.results_dir='short_exp'
@@ -34,14 +34,17 @@ if args.exp == 's':
 else:
     e=40
 
+args.results_dir='tmpp'
+
 c=0
 i=1
 x_max=math.inf
 
+
 if args.ploty == 'a':
     for (root, dirs, files) in os.walk(args.results_dir):
         for d in dirs:
-            if d.split('_')[0]==args.architecture:
+            if args.architecture in d:
                 x=np.load(os.path.join(root,d)+'/learning_curves.npy')[()]
                 if args.plotx=='epoch':
                     plt.plot(range(e),x['val_ppls'],color=colors[c],label=str(i)+'_val')
@@ -56,20 +59,20 @@ if args.ploty == 'a':
                     if time[e-1]<x_max:
                         x_max=time[e-1]
                     plt.xlabel("wall_clock_time")
+                    plt.xlim(0,x_max)
                 plt.ylabel("ppls")
-                plt.xlim(0,x_max)
                 plt.title(args.architecture+" experiments")
                 c+=1
             i+=1
 
-    plt.legend(loc='upper left', prop={'size':6},bbox_to_anchor=(0,1))
-    plt.savefig(args.results_dir+'/'+args.architecture+'_'+args.plotx)
+    plt.legend(loc='upper left', prop={'size':5},bbox_to_anchor=(0,1))
+    plt.savefig(args.results_dir+'/'+args.architecture+'_'+args.plotx,quality=95,dpi=400)
 
 
 elif args.ploty == 'o':
     for (root, dirs, files) in os.walk(args.results_dir):
         for d in dirs:
-            if d.split('_')[1]==args.optimizer:
+            if args.optimizer in d:
                 x=np.load(os.path.join(root,d)+'/learning_curves.npy')[()]
                 if args.plotx=='epoch':
                     plt.plot(range(e),x['val_ppls'],color=colors[c],label=str(i)+'_val')
@@ -84,11 +87,11 @@ elif args.ploty == 'o':
                     if time[e-1]<x_max:
                         x_max=time[e-1]
                     plt.xlabel("wall_clock_time")
+                    plt.xlim(0,x_max)
                 plt.ylabel("ppls")
-                plt.xlim(0,x_max)
                 plt.title(args.optimizer+" experiments")
                 c+=1
             i+=1
 
-    plt.legend(loc='upper left', prop={'size':6},bbox_to_anchor=(0,1))
+    plt.legend(loc='upper left', prop={'size':5},bbox_to_anchor=(0,1))
     plt.savefig(args.results_dir+'/'+args.optimizer+'_'+args.plotx)
