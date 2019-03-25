@@ -282,7 +282,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
             logits.append(self.w_y(h_t))
 
         #logits = torch.stack(logits)
-        logits = torch.cat(logits)
+        logits = torch.cat(logits).contiguous()
 
         return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
 
