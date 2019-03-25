@@ -265,23 +265,21 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
     def forward(self, inputs, hidden):
         logits = []
         for t in range(self.seq_len):
-            h_t = self.emb(inputs[t])
-            h_t = self.dropout(h_t)
+            h_in = self.emb(inputs[t])
             new_hidden = []
 
             for i in range(self.num_layers):
-                r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](hidden[i]))
-                z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](hidden[i]))
-                h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
-                #h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
-                h_t = (1. - z_t) * h_tilde + z_t * hidden[i]
+                h_in = self.dropout(h_in)
+                r_t = torch.sigmoid(self.w_r[i](h_in) + self.u_r[i](hidden[i]))
+                z_t = torch.sigmoid(self.w_z[i](h_in) + self.u_z[i](hidden[i]))
+                h_tilde = torch.tanh(self.w_h[i](h_in) + self.u_h[i](r_t * hidden[i]))
+                h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
                 new_hidden.append(h_t)
 
-                h_t = self.dropout(h_t)
-
+            out = self.dropout(new_hidden[-1])
             hidden = torch.stack(new_hidden)
             # hidden = torch.cat(new_hidden).view(self.num_layers, self.batch_size, self.hidden_size)
-            logits.append(self.w_y(h_t))
+            logits.append(self.w_y(out))
 
         # logits = torch.stack(logits)
         logits = torch.cat(logits)
