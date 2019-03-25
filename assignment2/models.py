@@ -156,7 +156,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
         #new_hidden.append(torch.tanh(self.rnn_layers[0](torch.cat([out, hidden[0]], 1))))
         #out = self.dropout(new_hidden[-1])
         for i in range(0,self.num_layers):
-                new_hidden[i]=torch.tanh(self.rnn_layers[i](torch.cat([self.dropout(out), hidden[i]], 1)))
+                new_hidden[i] = torch.tanh(self.rnn_layers[i](torch.cat([self.dropout(out), hidden[i]], 1)))
                 out = new_hidden[i]
 
         hidden = Variable(new_hidden)
@@ -240,9 +240,13 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         self.emb.weigh.data.uniform_(-0.1, 0.1)
 
         k = math.sqrt(1. / self.hidden_size)
-        torch.init.uniform_(self.w_r[0], -k, k)
-        torch.init.uniform_(self.w_z[0], -k, k)
-        torch.init.uniiform_(self.w_h[0], -k, k)
+        for i in range(self.num_layers):
+            torch.nn.init.uniform_(self.w_r[i].weight, -k, k)
+            torch.nn.init.unifotm_(self.w_r[i].bias, -k, k)
+            torch.nn.init.uniform_(self.w_z[i].weight, -k, k)
+            torch.nn.init.uniform_(self.w_z[i].bias, -k, k)
+            torch.nn.init.uniiform_(self.w_h[i].weight, -k, k)
+            torch.nn.init.uniform_(self.w_z[i].bias, -k, k)
 
         # initialize parameters for y
         torch.nn.init.uniform_(self.w_y.weight, -0.1, 0.1)
@@ -256,7 +260,8 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         for t in range(self.seq_len):
             inp = self.emb(inputs[t])
             h_in = self.dropout(inp)
-            new_hidden = tuple()
+            new_hidden = torch.zeros((self.num_layers, self.batch_size, self.hidden_size)).float()
+            new_hidden = new_hidden.cuda()
 
             def concat(a, b): return torch.cat((a, b), dim=-1)
 
@@ -265,10 +270,12 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 z_t = torch.sigmoid(self.w_z[i](concat(h_in, hidden[i])))
                 h_tilde = torch.tanh(self.w_h[i](concat(h_in, r_t * hidden[i])))
                 h_out = (torch.ones_like(z_t) - z_t) * hidden[i] + z_t * h_tilde
-                new_hidden = new_hidden + (h_out, )
+                #new_hidden = new_hidden + (h_out, )
+                new_hidden[i] = h_out
                 h_in = self.dropout(h_out)
 
-            hidden = torch.stack(new_hidden)
+            #hidden = torch.stack(new_hidden)
+            hidden = Variable(new_hidden)
             logits = logits + (self.w_y(h_in), )
 
         logits = torch.stack(logits)
