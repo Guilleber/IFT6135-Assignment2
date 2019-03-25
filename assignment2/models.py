@@ -273,7 +273,8 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 r_t = torch.sigmoid(self.w_r[i](h_t) + self.u_r[i](hidden[i]))
                 z_t = torch.sigmoid(self.w_z[i](h_t) + self.u_z[i](hidden[i]))
                 h_tilde = torch.tanh(self.w_h[i](h_t) + self.u_h[i](r_t * hidden[i]))
-                h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
+                #h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
+                h_t = (1. - z_t) * h_tilde + z_t * hidden[i]
                 new_hidden.append(h_t)
 
                 h_t = self.dropout(h_t)
@@ -283,7 +284,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
             logits.append(self.w_y(h_t))
 
         # logits = torch.stack(logits)
-        logits = torch.cat(logits).contiguous()
+        logits = torch.cat(logits)
 
         return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
 
