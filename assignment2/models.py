@@ -281,7 +281,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 new_hidden.append(h_t)
 
             out = self.dropout(new_hidden[-1])
-            hidden = torch.stack(new_hidden)
+            #hidden = torch.stack(new_hidden)
             # hidden = torch.cat(new_hidden).view(self.num_layers, self.batch_size, self.hidden_size)
             logits.append(self.w_y(out))
 
