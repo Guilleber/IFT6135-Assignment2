@@ -144,8 +144,8 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
               if you are curious.
                     shape: (num_layers, batch_size, hidden_size)
     """
-    emb_inputs = self.dropout(self.embedding(inputs.view(self.seq_len*self.batch_size)).view(self.seq_len, self.batch_size, self.emb_size))
-    
+    #emb_inputs = self.dropout(self.embedding(inputs.view(self.seq_len*self.batch_size)).view(self.seq_len, self.batch_size, self.emb_size))
+    emb_inputs = self.dropout(self.embedding(inputs))
     logits = []
     
     for t in range(self.seq_len):
@@ -234,7 +234,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         self.w_y = torch.nn.Linear(hidden_size, vocab_size)
 
     def init_weights_uniform(self):
-        torch.nn.init.uniform_(self.emb.weight, a=-0.1, b=0.1)
+        self.emb.weigh.data.uniform_(-0.1, 0.1)
 
         k = np.sqrt(1. / self.hidden_size)
         for i in range(self.num_layers):
@@ -277,11 +277,13 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 h_t = self.dropout(h_t)
 
             hidden = torch.stack(new_hidden)
+            #hidden = torch.cat(new_hidden).view(self.num_layers, self.batch_size, self.hidden_size)
             logits.append(self.w_y(h_t))
 
-        logits = torch.stack(logits)
+        #logits = torch.stack(logits)
+        logits = torch.cat(logits)
 
-        return logits, hidden
+        return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
 
     def generate(self, input, hidden, generated_seq_len):
         samples = []
