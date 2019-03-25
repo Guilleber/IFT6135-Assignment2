@@ -265,7 +265,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
     def forward(self, inputs, hidden):
         logits = []
         for t in range(self.seq_len):
-            h_in = self.emb(inputs[t]) * math.sqrt(self.emb_size)
+            h_in = self.emb(inputs[t])
             new_hidden = []
 
             for i in range(self.num_layers):
