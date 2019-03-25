@@ -169,7 +169,7 @@ if not os.path.isdir(args.save_dir):
 # name for the experimental dir
 print("\n########## Setting Up Experiment ######################")
 flags = [flag.lstrip('--').replace('/', '').replace('\\', '') for flag in sys.argv[1:]]
-experiment_path = os.path.join(args.save_dir+'_'.join([argsdict['model'],
+experiment_path = os.path.join(args.save_dir+'/'+'_'.join([argsdict['model'],
                                          argsdict['optimizer']]
                                          + flags))
 
