@@ -273,8 +273,8 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
                 def concat(a,b): return  torch.cat([a,b], dim=-1)
                 r_t = torch.sigmoid(self.w_r[i](concat(h_in, hidden[i])))
-                z_t = torch.sigmoid(self.w_z[i](concat(h_in, r_t * hidden[i])))
-                h_tilde = torch.tanh(self.w_h[i](concat(h_in, hidden[i])))
+                z_t = torch.sigmoid(self.w_z[i](concat(h_in, hidden[i])))
+                h_tilde = torch.tanh(self.w_h[i](concat(h_in, r_t * hidden[i])))
                 h_t = (1. - z_t) * hidden[i] + z_t * h_tilde
                 new_hidden.append(h_t)
                 h_in = h_t
