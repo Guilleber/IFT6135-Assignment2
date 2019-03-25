@@ -108,7 +108,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
     return
 
   def init_hidden(self):
-    return Variable(torch.zeros((self.num_layers, self.batch_size, self.hidden_size))).float()# a parameter tensor of shape (self.num_layers, self.batch_size, self.hidden_size)
+    return torch.zeros((self.num_layers, self.batch_size, self.hidden_size)).float()# a parameter tensor of shape (self.num_layers, self.batch_size, self.hidden_size)
 
   def forward(self, inputs, hidden):
     # TODO ========================
@@ -146,22 +146,27 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
               if you are curious.
                     shape: (num_layers, batch_size, hidden_size)
     """
-    emb_inputs = self.dropout(self.embedding(inputs))
+
     logits = []
     
     for t in range(self.seq_len):
-        out = emb_inputs[t]
-        new_hidden = []
+        out = self.embedding(inputs[t])
+        new_hidden = torch.zeros((self.num_layers, self.batch_size, self.hidden_size)).float()
+        new_hidden = new_hidden.cuda()
         #new_hidden.append(torch.tanh(self.rnn_layers[0](torch.cat([out, hidden[0]], 1))))
         #out = self.dropout(new_hidden[-1])
         for i in range(0,self.num_layers):
-                new_hidden.append(torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1))))
-                out = self.dropout(new_hidden[-1])
-        hidden = torch.cat([h.unsqueeze(0) for h in new_hidden], 0)
+                new_hidden[i]=torch.tanh(self.rnn_layers[i](torch.cat([self.dropout(out), hidden[i]], 1)))
+                out = new_hidden[i]
+
+        hidden = Variable(new_hidden)
         
         logits.append(self.linear_out(out))
         
-    return torch.cat([t.unsqueeze(0) for t in logits], 0), hidden
+
+    logits = torch.stack(logits)
+    return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
+
 
   def generate(self, input, hidden, generated_seq_len):
     # TODO ========================
