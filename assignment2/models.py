@@ -236,6 +236,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         self.gru = clones(torch.nn.GRUCell(self.hidden_size, self.hidden_size, self.num_layers),
                           self.num_layers-1)
         self.gru.insert(0, torch.nn.GRUCell(self.emb_size, self.hidden_size, self.num_layers))
+        self.seq_gru = torch.nn.GRU(self.emb_size, self.hidden_size, self.num_layers, dropout=1.-dp_keep_prob, bidirectional= False)
 
     def init_weights_uniform(self):
         self.emb.weigh.data.uniform_(-0.1, 0.1)
@@ -266,7 +267,11 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
     def forward(self, inputs, hidden):
         logits = []
-        for t in range(self.seq_len):
+        inp = self.emb(inputs)
+        inp = self.dropout(inp)
+        out, hidden = self.seq_gru(inp)
+        logits = self.w_y(self.dropout(out))
+        """for t in range(self.seq_len):
             inp = self.emb(inputs[t])
             h_in = self.dropout(inp)
             new_hidden = []
@@ -274,13 +279,13 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
             def concat(a, b):
                 return torch.cat((a, b), dim=-1)
 
-            """for i in range(self.num_layers):
+            for i in range(self.num_layers):
                 r_t = torch.sigmoid(self.w_r[i](concat(h_in, hidden[i])))
                 z_t = torch.sigmoid(self.w_z[i](concat(h_in, hidden[i])))
                 h_tilde = torch.tanh(self.w_h[i](concat(h_in, r_t.mul(hidden[i]))))
                 h_t = (torch.ones_like(z_t) - z_t) * hidden[i] + z_t * h_tilde
                 new_hidden.append(h_t)
-                h_in = self.dropout(h_t)"""
+                h_in = self.dropout(h_t)
             for i in range(self.num_layers):
                 h_in = self.gru[i](h_in, hidden[i])
                 new_hidden.append(h_in)
@@ -288,10 +293,9 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
 
             hidden = torch.stack(new_hidden)
             # hidden = torch.cat(new_hidden).view(self.num_layers, self.batch_size, self.hidden_size)
-            logits.append(self.w_y(h_in))
+            logits.append(self.w_y(h_in))"""
 
         # logits = torch.stack(logits)
-        logits = torch.stack(logits)
         return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
 
     def generate(self, input, hidden, generated_seq_len):
