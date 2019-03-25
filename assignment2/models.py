@@ -71,8 +71,6 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
     self.dropout = nn.Dropout(self.dp_prob)
     self.rnn_layers = nn.ModuleList()
     self.linear_out = nn.Linear(self.hidden_size, self.vocab_size)
-    """for i in range(self.num_layers):
-        self.rnn_layers.append(nn.Linear(2*self.hidden_size if i != 0 else self.hidden_size+self.emb_size, self.hidden_size))"""
     self.rnn_layers = clones(nn.Linear(2*self.hidden_size, self.hidden_size), num_layers-1)
     self.rnn_layers.insert(0, nn.Linear(self.emb_size+self.hidden_size, self.hidden_size))
     # TODO ========================
@@ -147,21 +145,18 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
                     shape: (num_layers, batch_size, hidden_size)
     """
 
-    logits = []
+    logits = tuple()
     
     for t in range(self.seq_len):
         out = self.embedding(inputs[t])
-        new_hidden = torch.zeros((self.num_layers, self.batch_size, self.hidden_size)).float()
-        new_hidden = new_hidden.cuda()
-        #new_hidden.append(torch.tanh(self.rnn_layers[0](torch.cat([out, hidden[0]], 1))))
-        #out = self.dropout(new_hidden[-1])
-        for i in range(0,self.num_layers):
-                new_hidden[i] = torch.tanh(self.rnn_layers[i](torch.cat([self.dropout(out), hidden[i]], 1)))
+        new_hidden = tuple()
+        for i in range(0, self.num_layers):
+                new_hidden += (torch.tanh(self.rnn_layers[i](torch.cat([self.dropout(out), hidden[i]], 1))), )
                 out = new_hidden[i]
 
-        hidden = Variable(new_hidden)
+        hidden = torch.stack(new_hidden)
         
-        logits.append(self.linear_out(out))
+        logits += torch.stack(self.dropout(self.linear_out(out)))
         
 
     logits = torch.stack(logits)
