@@ -211,7 +211,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         self.hidden_size = hidden_size
 
         # define embedding
-        self.emb = torch.nn.Embedding(self.vocab_size, self.emb_size, max)
+        self.emb = torch.nn.Embedding(self.vocab_size, self.emb_size)
 
         # dropout
         self.dropout = torch.nn.Dropout(p=1.-dp_keep_prob)
