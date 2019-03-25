@@ -217,19 +217,16 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         self.dropout = torch.nn.Dropout(p=1.-dp_keep_prob)
 
         # r_t
-        self.w_r = clones(torch.nn.Linear(hidden_size, hidden_size), self.num_layers-1)
-        self.w_r.insert(0, torch.nn.Linear(emb_size, hidden_size))
-        self.u_r = clones(torch.nn.Linear(hidden_size, hidden_size, False), self.num_layers)
+        self.w_r = clones(torch.nn.Linear(2*hidden_size, hidden_size), self.num_layers-1)
+        self.w_r.insert(0, torch.nn.Linear(emb_size+hidden_size, hidden_size))
 
         # z_t
-        self.w_z = clones(torch.nn.Linear(hidden_size,  hidden_size), self.num_layers-1)
-        self.w_z.insert(0, torch.nn.Linear(emb_size, hidden_size))
-        self.u_z = clones(torch.nn.Linear(hidden_size, hidden_size, False), self.num_layers)
+        self.w_z = clones(torch.nn.Linear(2*hidden_size,  hidden_size), self.num_layers-1)
+        self.w_z.insert(0, torch.nn.Linear(emb_size+hidden_size, hidden_size))
 
         # h_t
-        self.w_h = clones(torch.nn.Linear(hidden_size, hidden_size), self.num_layers-1)
-        self.w_h.insert(0, torch.nn.Linear(emb_size, hidden_size))
-        self.u_h = clones(torch.nn.Linear(hidden_size, hidden_size, False), self.num_layers)
+        self.w_h = clones(torch.nn.Linear(2*hidden_size, hidden_size), self.num_layers-1)
+        self.w_h.insert(0, torch.nn.Linear(emb_size+hidden_size, hidden_size))
 
         # y
         self.w_y = torch.nn.Linear(hidden_size, vocab_size)
@@ -254,18 +251,20 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         for t in range(self.seq_len):
             inp = self.emb(inputs[t])
             h_in = self.dropout(inp)
-            new_hidden = ()
+            new_hidden = tuple()
+
+            def concat(a, b): return torch.cat((a, b), dim=-1)
 
             for i in range(self.num_layers):
-                r_t = torch.sigmoid(self.w_r[i](h_in) + self.u_r[i](hidden[i]))
-                z_t = torch.sigmoid(self.w_z[i](h_in) + self.u_z[i](hidden[i]))
-                h_tilde = torch.tanh(self.w_h[i](h_in) + self.u_h[i](r_t * hidden[i]))
+                r_t = torch.sigmoid(self.w_r[i](concat(h_in, hidden[i])))
+                z_t = torch.sigmoid(self.w_z[i](concat(h_in, hidden[i])))
+                h_tilde = torch.tanh(self.w_h[i](concat(h_in, r_t * hidden[i])))
                 h_out = (torch.ones_like(z_t) - z_t) * hidden[i] + z_t * h_tilde
-                new_hidden = new_hidden + tuple(h_out)
+                new_hidden = new_hidden + (h_out, )
                 h_in = self.dropout(h_out)
 
             hidden = torch.stack(new_hidden)
-            logits = logits + tuple(self.w_y(h_in))
+            logits = logits + (self.w_y(h_in), )
 
         logits = torch.stack(logits)
         return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
