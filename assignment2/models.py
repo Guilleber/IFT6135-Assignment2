@@ -260,8 +260,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         for t in range(self.seq_len):
             inp = self.emb(inputs[t])
             h_in = self.dropout(inp)
-            new_hidden = torch.zeros((self.num_layers, self.batch_size, self.hidden_size)).float()
-            new_hidden = new_hidden.cuda()
+            new_hidden = tuple()
 
             def concat(a, b): return torch.cat((a, b), dim=-1)
 
@@ -270,12 +269,10 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 z_t = torch.sigmoid(self.w_z[i](concat(h_in, hidden[i])))
                 h_tilde = torch.tanh(self.w_h[i](concat(h_in, r_t * hidden[i])))
                 h_out = (torch.ones_like(z_t) - z_t) * hidden[i] + z_t * h_tilde
-                #new_hidden = new_hidden + (h_out, )
-                new_hidden[i] = h_out
+                new_hidden = new_hidden + (h_out, )
                 h_in = self.dropout(h_out)
 
-            #hidden = torch.stack(new_hidden)
-            hidden = Variable(new_hidden)
+            hidden = torch.stack(new_hidden)
             logits = logits + (self.w_y(h_in), )
 
         logits = torch.stack(logits)
