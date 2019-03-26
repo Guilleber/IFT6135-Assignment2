@@ -155,7 +155,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
 
             hidden = torch.stack(new_hidden)
 
-            logits += [self.dropout(self.linear_out(hidden[-1]))]
+            logits += [self.linear_out(self.dropout(hidden[-1]))]
 
         logits = torch.stack(logits)
         return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
@@ -179,9 +179,9 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
             new_hidden = []
             for i in range(0, self.num_layers):
                 new_hidden += [(torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1))))]
-                out = self.dropout(new_hidden[-1])
-            hidden = torch.cat([h.unsqueeze(0) for h in new_hidden], 0)
-            out = self.linear_out(out)
+                out = new_hidden[-1]
+            hidden = torch.stack(new_hidden)
+            out = self.linear_out(hidden[-1])
 
             samples += [torch.softmax(out).argmax(dim=-1)]
             input = samples[t]
