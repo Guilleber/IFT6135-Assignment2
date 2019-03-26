@@ -333,7 +333,7 @@ else:
 model = model.to(device)
 
 # LOSS FUNCTION
-loss_fn = nn.CrossEntropyLoss()
+loss_fn = nn.CrossEntropyLoss(reduce=False)
 if args.optimizer == 'ADAM':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_lr)
 
@@ -382,7 +382,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
         hidden = hidden.to(device)
     costs = 0.0
     iters = 0
-    losses = []
+    losses = [0 for _ in range(model.seq_len)]
 
     # LOOP THROUGH MINIBATCHES
     for step, (x, y) in enumerate(ptb_iterator(data, model.batch_size, model.seq_len)):
@@ -397,8 +397,8 @@ def run_epoch(model, data, is_train=False, lr=1.0):
             hidden = repackage_hidden(hidden)
             outputs, hidden = model(inputs, hidden)
 
-        targets = torch.from_numpy(y.astype(np.int64))#.transpose(0, 1).contiguous().to(device)#.cuda()
-        tt = targets # torch.squeeze(targets.view(-1, model.batch_size * model.seq_len))
+        targets = torch.from_numpy(y.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda()
+        tt = torch.squeeze(targets.view(-1, model.batch_size * model.seq_len))
 
         # LOSS COMPUTATION
         # This line currently averages across all the sequences in a mini-batch
@@ -406,13 +406,22 @@ def run_epoch(model, data, is_train=False, lr=1.0):
         # For problem 5.3, you will (instead) need to compute the average loss
         #at each time-step separately.
         loss = loss_fn(outputs.contiguous().view(-1, model.vocab_size), tt)
-        costs += loss.data.item() * model.seq_len
-        losses.append(costs)
-        iters += model.seq_len
+        print(torch.autograd.grad(loss.sum(), hidden[1, 0, 0], allow_unused=True))
+        loss = loss.view(35, 20)
+        loss = torch.sum(loss, dim=1)
+        if is_train:
+            for i in range(model.seq_len):
+                test = torch.autograd.grad(loss[0], torch.sum(hidden[-1], dim=0)[i], allow_unused=True)
+        costs = [loss.data[i] for i in range(model.seq_len)]
+        for i in range(model.seq_len):
+            losses[i] += costs[i]
+        iters += model.batch_size
         if args.debug:
             print(step, loss)
         if is_train:  # Only update parameters if training
-            loss.backward()
+            loss = loss.sum()
+            loss.backward(retain_graph=True)
+            print(outputs.grad)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 0.25)
             if args.optimizer == 'ADAM':
                 optimizer.step()
@@ -422,9 +431,9 @@ def run_epoch(model, data, is_train=False, lr=1.0):
                         p.data.add_(-lr, p.grad.data)
             if step % (epoch_size // 10) == 10:
                 print('step: '+ str(step) + '\t' \
-                    + "loss (sum over all examples' seen this epoch):" + str(costs) + '\t' \
+                    + "loss for each time step:" + str(costs) + '\t' \
                     + 'speed (wps):' + str(iters * model.batch_size / (time.time() - start_time)))
-    return np.exp(costs / iters), losses
+    return np.exp(np.sum(costs) / iters), losses
 
 
 
@@ -458,11 +467,10 @@ for epoch in range(num_epochs):
     if args.optimizer == 'SGD_LR_SCHEDULE':
         lr_decay = lr_decay_base ** max(epoch - m_flat_lr, 0)
         lr = lr * lr_decay # decay lr if it is time
-
-    # RUN MODEL ON TRAINING DATA
+    # RUN MODEL ON TRAINING DATA for 5.2
     train_ppl, train_loss = run_epoch(model, train_data, True, lr)
 
-    # RUN MODEL ON VALIDATION DATA
+    # RUN MODEL ON VALIDATION DATA for 5.1
     val_ppl, val_loss = run_epoch(model, valid_data)
 
 
@@ -485,7 +493,7 @@ for epoch in range(num_epochs):
     train_ppls.append(train_ppl)
     val_ppls.append(val_ppl)
     train_losses.extend(train_loss)
-    val_losses.extend(val_loss)
+    val_losses.append(val_loss)
     times.append(time.time() - t0)
     clock.append(sum(times))
     log_str = 'epoch: ' + str(epoch) + '\t' \
@@ -497,6 +505,7 @@ for epoch in range(num_epochs):
     with open (os.path.join(args.save_dir, 'log.txt'), 'a') as f_:
         f_.write(log_str+ '\n')
 
+val_losses = np.mean(val_loss, axis=0)
 # SAVE LEARNING CURVES
 lc_path = os.path.join(args.save_dir, 'learning_curves.npy')
 print('\nDONE\n\nSaving learning curves to '+lc_path)
