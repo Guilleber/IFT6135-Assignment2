@@ -181,7 +181,7 @@ long_samples = []
 
 for i in range(args.batch_size):
     n= (len(raw_data)//args.batch_size)*i
-    data[i] = raw_data[n : n + batch_len]
+    data[i,:] = raw_data[n : n + batch_len]
 
     seed = torch.from_numpy(data.astype(np.int64)).transpose(0, 1).contiguous().to(device)
     hidden = model.init_hidden()
