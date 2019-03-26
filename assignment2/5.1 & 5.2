@@ -151,8 +151,8 @@ for i in range(args.batch_size):
     hidden = repackage_hidden(hidden)
     outputs, hidden = model(inputs, hidden)
 
-    short_samples[t]= model.generate(model.generate(seed, hidden, args.seq_len))
-    long_samples[t]= model.generate(model.generate(seed, hidden, 2*args.seq_len))
+    short_samples[t]= model.generate(seed, hidden, args.seq_len)
+    long_samples[t]= model.generate(seed, hidden, 2*args.seq_len)
 
 
 
