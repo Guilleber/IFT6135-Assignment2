@@ -6,16 +6,54 @@ import torch.nn.functional as F
 import math, copy, time
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
+import argparse
 
 from models import RNN, GRU 
 from models import make_model as TRANSFORMER
+parser = argparse.ArgumentParser(description='PyTorch Penn Treebank Language Modeling')
+parser.add_argument('--seq_len', type=int, default=35,
+                    help='number of timesteps over which BPTT is performed')
+parser.add_argument('--batch_size', type=int, default=20,
+                    help='size of one minibatch')
+parser.add_argument('--initial_lr', type=float, default=20.0,
+                    help='initial learning rate')
+parser.add_argument('--hidden_size', type=int, default=200,
+                    help='size of hidden layers. IMPORTANT: for the transformer\
+                    this must be a multiple of 16.')
+
+args = parser.parse_args()
+
+if torch.cuda.is_available():
+    print("Using the GPU")
+    device = torch.device("cuda")
+else:
+    print("WARNING: You are about to run on cpu, and this will likely run out \
+      of memory. \n You can try setting batch_size=1 to reduce memory usage")
+    device = torch.device("cpu")
+
+def repackage_hidden(h):
+    """
+    Wraps hidden states in new Tensors, to detach them from their history.
+
+    This prevents Pytorch from trying to backpropagate into previous input
+    sequences when we use the final hidden states from one mini-batch as the
+    initial hidden states for the next mini-batch.
+
+    Using the final hidden states in this way makes sense when the elements of
+    the mini-batches are actually successive subsequences in a set of longer sequences.
+    This is the case with the way we've processed the Penn Treebank dataset.
+    """
+    if isinstance(h, Variable):
+        return h.detach_()
+    else:
+        return tuple(repackage_hidden(v) for v in h)
 
 
 ########################### 5.2 ###########################################################
 
 def average_Lt(model, valid_data):
 
-    "Getting the data into a matrix where each column represents a batch"   
+    "Getting the data into a matrix where each column represents a batch"
     raw_data = np.array(valid_data, dtype=np.int32)
     data_len = len(raw_data)
     batch_len = data_len // args.batch_size
@@ -90,7 +128,7 @@ def grad_mean_norm(model, valid_data, vocab_size):
     raw_data = np.array(valid_data, dtype=np.int32)
     mini_batch = np.zeros([args.batch_size, args.seq_len], dtype=np.int32)
     for i in range(args.batch_size):
-        mini_batch[i] = raw_data[0:args.seq_len]  
+        mini_batch[i] = raw_data[0:args.seq_len]
         
     model.eval()
 
