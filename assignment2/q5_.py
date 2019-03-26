@@ -108,6 +108,7 @@ parser = argparse.ArgumentParser(description='PyTorch Penn Treebank Language Mod
 parser.add_argument('--data', type=str, default='data',
                     help='location of the data corpus. We suggest you change the default\
                     here, rather than passing as an argument, to avoid long file paths.')
+parser.add_argument('--model_path', type=str)
 parser.add_argument('--model', type=str, default='GRU',
                     help='type of recurrent net (RNN, GRU, TRANSFORMER)')
 parser.add_argument('--optimizer', type=str, default='SGD_LR_SCHEDULE',
@@ -330,7 +331,13 @@ elif args.model == 'TRANSFORMER':
 else:
   print("Model type not recognized.")
 
+model.load_state_dict(torch.load(args.model_path))
 model = model.to(device)
+gen = model.generate(torch.LongTensor(args.batch_size).random_(0, model.vocab_size).cuda(), model.init_hidden().cuda(), 10)
+gen = [[id_2_word[w] for w in seq.data.cpu().numpy()] for seq in gen]
+for i in range(10):
+    print(gen[i])
+
 
 # LOSS FUNCTION
 loss_fn = nn.CrossEntropyLoss()
