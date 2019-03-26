@@ -128,3 +128,40 @@ def grad_mean_norm(model, valid_data, vocab_size):
 
     return grad_moy, grad_norm, plot 
 
+#######################################################################################################################################
+#################################               5.3                 ###################################################################
+
+args.batch_size = 10
+
+"Getting the data into a matrix where each column represents a batch"   
+raw_data = np.array(valid_data, dtype=np.int32)
+batch_len = args.seq_len
+data = np.zeros([args.batch_size, batch_len], dtype=np.int32)
+
+short_samples = []
+long_samples = []
+
+for i in range(args.batch_size):
+    n= (len(data)//args.batch_size)*i
+    data[i] = raw_data[batch_len * n:batch_len * (n + 1)]
+
+    seed = torch.from_numpy(data.astype(np.int64)).transpose(0, 1).contiguous().to(device)
+    hidden = model.init_hidden()
+    hidden = hidden.to(device)
+    hidden = repackage_hidden(hidden)
+    outputs, hidden = model(inputs, hidden)
+
+    short_samples[t]= model.generate(model.generate(seed, hidden, args.seq_len))
+    long_samples[t]= model.generate(model.generate(seed, hidden, 2*args.seq_len))
+
+
+
+
+
+
+
+
+
+
+
+
