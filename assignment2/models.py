@@ -146,7 +146,6 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
         """
 
         logits = []
-
         for t in range(self.seq_len):
             out = self.embedding(inputs[t])
             new_hidden = []
@@ -156,7 +155,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
 
             hidden = torch.stack(new_hidden)
 
-            logits += torch.stack(self.dropout(self.linear_out(out)))
+            logits += [self.dropout(self.linear_out(hidden[-1]))]
 
         logits = torch.stack(logits)
         return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
@@ -286,7 +285,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 h_in = h_out
 
             hidden = torch.stack(new_hidden)
-            input = torch.softmax(self.w_y(h_out).argmax(dim=-1))
+            input = torch.softmax(self.w_y(hidden[-1]).argmax(dim=-1))
             samples = samples + [input]
 
         samples = torch.stack(samples)
