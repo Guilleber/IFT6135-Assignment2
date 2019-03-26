@@ -145,19 +145,18 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
                         shape: (num_layers, batch_size, hidden_size)
         """
 
-        logits = tuple()
+        logits = []
 
         for t in range(self.seq_len):
             out = self.embedding(inputs[t])
-            new_hidden = tuple()
+            new_hidden = []
             for i in range(0, self.num_layers):
-                    new_hidden += (torch.tanh(self.rnn_layers[i](torch.cat([self.dropout(out), hidden[i]], 1))), )
+                    new_hidden += [torch.tanh(self.rnn_layers[i](torch.cat([self.dropout(out), hidden[i]], 1)))]
                     out = new_hidden[i]
 
             hidden = torch.stack(new_hidden)
 
             logits += torch.stack(self.dropout(self.linear_out(out)))
-
 
         logits = torch.stack(logits)
         return logits.view(self.seq_len, self.batch_size, self.vocab_size), hidden
@@ -249,11 +248,11 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         return torch.zeros(self.num_layers, self.batch_size, self.hidden_size)
 
     def forward(self, inputs, hidden):
-        logits = ()
+        logits = []
         for t in range(self.seq_len):
             inp = self.emb(inputs[t])
             h_in = self.dropout(inp)
-            new_hidden = tuple()
+            new_hidden = []
 
             def concat(a, b): return torch.cat((a, b), dim=-1)
 
@@ -262,20 +261,20 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 z_t = torch.sigmoid(self.w_z[i](concat(h_in, hidden[i])))
                 h_tilde = torch.tanh(self.w_h[i](concat(h_in, r_t * hidden[i])))
                 h_out = (torch.ones_like(z_t) - z_t) * hidden[i] + z_t * h_tilde
-                new_hidden = new_hidden + (h_out, )
+                new_hidden = new_hidden + [h_out]
                 h_in = self.dropout(h_out)
 
             hidden = torch.stack(new_hidden)
-            logits = logits + (self.w_y(h_in), )
+            logits = logits + [self.w_y(h_in)]
 
         logits = torch.stack(logits)
         return logits.view((self.seq_len, self.batch_size, self.vocab_size)), hidden
 
     def generate(self, input, hidden, generated_seq_len):
-        samples = tuple()
+        samples = []
         for t in range(generated_seq_len):
             h_in = self.emb(input)
-            new_hidden = tuple()
+            new_hidden = []
 
             def concat(a, b): return torch.cat((a, b), dim=-1)
 
@@ -284,12 +283,12 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 z_t = torch.sigmoid(self.w_z[i](concat(h_in, hidden[i])))
                 h_tilde = torch.tanh(self.w_h[i](concat(h_in, r_t * hidden[i])))
                 h_out = (torch.ones_like(z_t) - z_t) * hidden[i] + z_t * h_tilde
-                new_hidden = new_hidden + (h_out, )
+                new_hidden = new_hidden + [h_out]
                 h_in = h_out
 
             hidden = torch.stack(new_hidden)
             input = F.softmax(self.w_y(h_out).argmax(dim=-1))
-            samples = samples + (input, )
+            samples = samples + [input]
 
         samples = torch.stack(samples)
 
