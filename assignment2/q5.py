@@ -142,8 +142,8 @@ short_samples = []
 long_samples = []
 
 for i in range(args.batch_size):
-    n= (len(data)//args.batch_size)*i
-    data[i] = raw_data[batch_len * n:batch_len * (n + 1)]
+    n= (len(raw_data)//args.batch_size)*i
+    data[i] = raw_data[n : n + batch_len]
 
     seed = torch.from_numpy(data.astype(np.int64)).transpose(0, 1).contiguous().to(device)
     hidden = model.init_hidden()
@@ -151,8 +151,8 @@ for i in range(args.batch_size):
     hidden = repackage_hidden(hidden)
     outputs, hidden = model(inputs, hidden)
 
-    short_samples[t]= model.generate(model.generate(seed, hidden, args.seq_len))
-    long_samples[t]= model.generate(model.generate(seed, hidden, 2*args.seq_len))
+    short_samples[t]= model.generate(seed, hidden, args.seq_len)
+    long_samples[t]= model.generate(seed, hidden, 2*args.seq_len)
 
 
 
