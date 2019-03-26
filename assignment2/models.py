@@ -174,19 +174,18 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
         # function here in order to compute the parameters of the categorical
         # distributions to be sampled from at each time-step.
         out = self.embedding(input)
-        samples = tuple()
+        samples = []
 
         for t in range(generated_seq_len):
-            new_hidden = tuple()
+            new_hidden = []
             for i in range(0, self.num_layers):
-                new_hidden += ((torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1)))), )
+                new_hidden += [(torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1))))]
                 out = self.dropout(new_hidden[-1])
             hidden = torch.cat([h.unsqueeze(0) for h in new_hidden], 0)
             out = self.linear_out(out)
 
-            samples += (torch.max(out, 2)[0], )
+            samples += [torch.softmax(out).argmax(dim=-1)]
             input = samples[t]
-            out = self.dropout(self.embedding(input))
 
         return samples
 
