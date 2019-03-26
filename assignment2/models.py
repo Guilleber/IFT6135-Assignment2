@@ -287,7 +287,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 h_in = h_out
 
             hidden = torch.stack(new_hidden)
-            input = F.softmax(self.w_y(h_out).argmax(dim=-1))
+            input = torch.softmax(self.w_y(h_out).argmax(dim=-1))
             samples = samples + [input]
 
         samples = torch.stack(samples)
