@@ -142,7 +142,7 @@ short_samples = []
 long_samples = []
 
 for i in range(args.batch_size):
-    n= (len(data)//args.batch_size)*i
+    n= (len(raw_data)//args.batch_size)*i
     data[i] = raw_data[batch_len * n:batch_len * (n + 1)]
 
     seed = torch.from_numpy(data.astype(np.int64)).transpose(0, 1).contiguous().to(device)
