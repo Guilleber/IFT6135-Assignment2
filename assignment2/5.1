@@ -261,6 +261,8 @@ def average_Lt(model, valid_data):
                 
     loss_moy = loss_moy/n
     
+    plt.ioff()
+    plt.close()
     plt.plot(list(range(1,36)), list(loss_moy), 'go-', label='line 1', linewidth=2)
     plt.title('Average loss at each timestep')
     plt.xlabel('t')
