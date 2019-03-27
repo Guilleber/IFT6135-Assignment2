@@ -386,7 +386,7 @@ def save_grad(grads):
     plt.ylabel("Norm")
     plt.ylim(0, 1)
     plt.plot(np.arange(1, model.seq_len + 1), grads)
-    plt.savefig("{}/grad_norm.png".format(args.save_dir))
+    plt.savefig("{dir}/{model}/grad_norm.png".format(dir=args.save_dir, model=args.model))
 
 def save_loss(losses):
     plt.figure()
@@ -396,7 +396,7 @@ def save_loss(losses):
     plt.ylabel("Loss")
     plt.ylim(0, 1)
     plt.plot(np.arange(1, model.seq_len + 1), losses)
-    plt.savefig("{}/loss_t.png".format(args.save_dir))
+    plt.savefig("{dir}/{model}/loss_t.png".format(dir=args.save_dir, model=args.model))
 
 
 def run_epoch(model, data, is_train=False, lr=1.0):
