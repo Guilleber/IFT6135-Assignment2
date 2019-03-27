@@ -87,6 +87,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
         # for Pytorch to recognize these parameters as belonging to this nn.Module
         # and compute their gradients automatically. You're not obligated to use the
         # provided clones function.
+        self.hidden_seq = []
 
         return
 
@@ -147,6 +148,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
 
         logits = []
         for t in range(self.seq_len):
+            self.hidden_seq += [hidden] # keeps track of hidden layers at time t for Q5.2
             out = self.embedding(inputs[t])
             new_hidden = []
             for i in range(0, self.num_layers):
@@ -180,7 +182,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
             for i in range(0, self.num_layers):
                 new_hidden += [(torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1))))]
                 out = new_hidden[-1]
-            hidden = torch.stack(new_hidden)
+            hidden = new_hidden
             out = self.linear_out(hidden[-1])
 
             samples += [torch.softmax(out).argmax(dim=-1)]
@@ -226,6 +228,8 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         # y
         self.w_y = torch.nn.Linear(hidden_size, vocab_size)
 
+        self.hidden_seq = []
+
     def init_weights_uniform(self):
         self.emb.weigh.data.uniform_(-0.1, 0.1)
 
@@ -248,6 +252,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
     def forward(self, inputs, hidden):
         logits = []
         for t in range(self.seq_len):
+            self.hidden_seq += [hidden]  # keeps track of hidden layers at time t for Q5.2
             inp = self.emb(inputs[t])
             h_in = self.dropout(inp)
             new_hidden = []
@@ -269,6 +274,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
         return logits.view((self.seq_len, self.batch_size, self.vocab_size)), hidden
 
     def generate(self, input, hidden, generated_seq_len):
+        self.eval()
         samples = []
         for t in range(generated_seq_len):
             h_in = self.emb(input)
@@ -284,7 +290,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 new_hidden = new_hidden + [h_out]
                 h_in = h_out
 
-            hidden = torch.stack(new_hidden)
+            hidden = new_hidden
             input = torch.softmax(self.w_y(hidden[-1]).argmax(dim=-1))
             samples = samples + [input]
 
