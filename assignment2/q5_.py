@@ -356,11 +356,9 @@ m_flat_lr = 14.0 # we will not touch lr for the first m_flat_lr epochs
 def repackage_hidden(h):
     """
     Wraps hidden states in new Tensors, to detach them from their history.
-
     This prevents Pytorch from trying to backpropagate into previous input
     sequences when we use the final hidden states from one mini-batch as the
     initial hidden states for the next mini-batch.
-
     Using the final hidden states in this way makes sense when the elements of
     the mini-batches are actually successive subsequences in a set of longer sequences.
     This is the case with the way we've processed the Penn Treebank dataset.
@@ -374,31 +372,6 @@ def repackage_hidden(h):
 ################# Verifier si probleme de folder
 if not os.path.isdir(args.save_dir + "/" + args.model):
     os.mkdir(args.save_dir + "/" + args.model)
-
-def save_grad(grads):
-    """
-    Saves gradient plots
-    :param grads: Has shape [seq_len,]
-    :return:
-    """
-    plt.figure()
-    plt.title("Norm of gradient of L_T wrt h_t as a function of t for {}".format(args.model))
-    plt.xlabel("Time step t")
-    plt.xlim(1, model.seq_len)
-    plt.ylabel("Norm")
-    plt.ylim(0, 1)
-    plt.plot(np.arange(1, model.seq_len + 1), grads)
-    plt.savefig("{dir}/{model}/grad_norm.png".format(dir=args.save_dir, model=args.model))
-
-def save_loss(losses):
-    plt.figure()
-    plt.title("Loss L_t as a function of t for {}".format(args.model))
-    plt.xlabel("Time step t")
-    plt.xlim(1, model.seq_len)
-    plt.ylabel("Loss")
-    plt.ylim(0, 1)
-    plt.plot(np.arange(1, model.seq_len + 1), losses)
-    plt.savefig("{dir}/{model}/loss_t.png".format(dir=args.save_dir, model=args.model))
 
 
 def run_epoch(model, data, is_train=False, lr=1.0):
@@ -431,7 +404,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
             inputs = torch.from_numpy(x.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda()
             model.zero_grad()
             hidden = repackage_hidden(hidden)
-            outputs, hidden = model(inputs, hidden)
+            outputs, hidden = model.forward(inputs, hidden)
 
         targets = torch.from_numpy(y.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda()
         tt = torch.squeeze(targets.view(-1, model.batch_size * model.seq_len))
@@ -459,7 +432,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
 
             return np.array(grads) / model.batch_size, np.sum(losses, axis=0) / model.batch_size
 
-        return np.array(grads) / model.batch_size, avg_loss / model.batch_size
+        return np.array(grads) / model.batch_size, np.array(avg_loss) / model.batch_size
 
 
 
@@ -493,9 +466,8 @@ model.to(device)
 model.eval()
 # RUN MODEL ON TRAINING DATA for 5.2
 grad, _ = run_epoch(model, train_data, True, lr)
-save_grad(grad)
+np.save(args.save_dir + "/" + args.model+ "/" + "grads.npy",grad)
 
 # RUN MODEL ON VALIDATION DATA for 5.1
 _, val_loss = run_epoch(model, valid_data)
-save_loss(val_loss)
-
+np.save(args.save_dir + "/" + args.model+ "/" + "losses.npy",val_loss)
