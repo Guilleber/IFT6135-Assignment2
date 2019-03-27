@@ -450,15 +450,13 @@ def run_epoch(model, data, is_train=False, lr=1.0):
             for t in range(model.seq_len):
                 grad = torch.autograd.grad(l_T, model.hidden_seq[t], retain_graph=True)
                 grad = grad[-1].to(torch.device('cpu')).numpy()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
                 grad = numpy.linalg.norm(grad, axis=1)
                 grad = np.sum(grad)
                 grads.append(grad)
 
             return np.array(grads) / model.batch_size, np.sum(losses, axis=0) / model.batch_size
 
-    return np.array(grads) / model.batch_size, np.sum(losses, axis=0) / model.batch_size
+        return np.array(grads) / model.batch_size, np.sum(losses, axis=0) / model.batch_size
 
 
 
