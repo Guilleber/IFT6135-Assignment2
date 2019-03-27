@@ -456,7 +456,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
 
             return np.array(grads) / model.batch_size, np.sum(losses, axis=0) / model.batch_size
 
-        return np.array(grads) / model.batch_size, np.sum(losses, axis=0) / model.batch_size
+        return np.array(grads) / model.batch_size, np.sum(losses.to(torch.device('cpu').numpy()), axis=0) / model.batch_size
 
 
 
