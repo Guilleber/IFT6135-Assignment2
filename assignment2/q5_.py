@@ -448,7 +448,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
             grad = torch.autograd.grad(l_T, hidden)
             grad = grad[0].data
             grad = grad[1]
-            grad = numpy.linag.norm(grad, axis=1)
+            grad = numpy.linalg.norm(grad, axis=1)
 
             return grad / model.batch_size, np.sum(losses, dim=0) / model.batch_size
 
