@@ -446,8 +446,8 @@ def run_epoch(model, data, is_train=False, lr=1.0):
 
         if is_train:  # Only update parameters if training
             for t in range(model.seq_len):
-                grad = torch.autograd.grad(l_T, model.hidden_seq)
-                grad = grad[-1, t].cpu().data
+                grad = torch.autograd.grad(l_T, model.hidden_seq[t])
+                grad = grad[-1].cpu().data
                 grad = numpy.linalg.norm(grad, axis=1)
                 grad = np.sum(grad)
                 grads.append(grad)
