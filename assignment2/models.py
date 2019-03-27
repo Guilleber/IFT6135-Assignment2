@@ -156,6 +156,7 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
                 new_hidden += [torch.tanh(self.rnn_layers[i](torch.cat([self.dropout(out), hidden[i]], 1)))]
                 out = new_hidden[i]
             hidden = new_hidden
+            self.hidden_seq += [hidden]
 
             logits += [self.linear_out(self.dropout(hidden[-1]))]
 
@@ -270,6 +271,7 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
                 h_in = self.dropout(h_out)
 
             hidden = new_hidden
+            self.hidden_seq += [hidden]
             logits = logits + [self.w_y(hidden[-1])]
 
         logits = torch.stack(logits)
