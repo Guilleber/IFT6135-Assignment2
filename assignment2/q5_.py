@@ -87,6 +87,7 @@ import torch
 import torch.nn
 from torch.autograd import Variable
 import torch.nn as nn
+import matplotlib.pyplot as plt
 import numpy
 np = numpy
 
@@ -108,7 +109,7 @@ parser = argparse.ArgumentParser(description='PyTorch Penn Treebank Language Mod
 parser.add_argument('--data', type=str, default='data',
                     help='location of the data corpus. We suggest you change the default\
                     here, rather than passing as an argument, to avoid long file paths.')
-parser.add_argument('--model_path', type=str)
+parser.add_argument('--model_path', type=str, default=None)
 parser.add_argument('--model', type=str, default='GRU',
                     help='type of recurrent net (RNN, GRU, TRANSFORMER)')
 parser.add_argument('--optimizer', type=str, default='SGD_LR_SCHEDULE',
@@ -331,16 +332,17 @@ elif args.model == 'TRANSFORMER':
 else:
   print("Model type not recognized.")
 
-model.load_state_dict(torch.load(args.model_path))
-model = model.to(device)
-gen = model.generate(torch.LongTensor(args.batch_size).random_(0, model.vocab_size).cuda(), model.init_hidden().cuda(), 10)
-gen = [[id_2_word[w] for w in seq.data.cpu().numpy()] for seq in gen]
-for i in range(10):
-    print(gen[i])
+if args.model_path is not None:
+    model.load_state_dict(torch.load(args.model_path))
+    model = model.to(device)
+    gen = model.generate(torch.LongTensor(args.batch_size).random_(0, model.vocab_size).cuda(), model.init_hidden().cuda(), 10)
+    gen = [[id_2_word[w] for w in seq.data.cpu().numpy()] for seq in gen]
+    for i in range(10):
+        print(gen[i])
 
 
 # LOSS FUNCTION
-loss_fn = nn.CrossEntropyLoss(reduce=False)
+loss_fn = nn.CrossEntropyLoss(reduction='none')
 if args.optimizer == 'ADAM':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_lr)
 
@@ -374,6 +376,32 @@ def repackage_hidden(h):
         return tuple(repackage_hidden(v) for v in h)
 
 
+def save_grad(grads):
+    """
+    Saves gradient plots
+    :param grads: Has shape [seq_len,]
+    :return:
+    """
+    figure = plt.figure()
+    figure.title("Norm of gradient of L_T wrt h_t as a function of t for {}".format(args.model))
+    figure.xlabel("Time step t")
+    figure.xlimit(1, model.seq_len)
+    figure.ylabel("Norm")
+    figure.ylimit(0, 1)
+    plt.plot(np.arange(1, model.seq_len + 1), grads)
+    plt.savefig("q5/grad_norm.png")
+
+def save_loss(losses):
+    figure = plt.figure()
+    figure.title("Loss L_t as a function of t for {}".format(args.model))
+    figure.xlabel("Time step t")
+    figure.xlimit(1, model.seq_len)
+    figure.ylabel("Loss")
+    figure.ylimit(0, 1)
+    plt.plot(np.arange(1, model.seq_len + 1), losses)
+    plt.savefig("q5/loss_t.png")
+
+
 def run_epoch(model, data, is_train=False, lr=1.0):
     """
     One epoch of training/validation (depending on flag is_train).
@@ -389,10 +417,13 @@ def run_epoch(model, data, is_train=False, lr=1.0):
         hidden = hidden.to(device)
     costs = 0.0
     iters = 0
-    losses = [0 for _ in range(model.seq_len)]
+    losses = []
+
+    batch_size = 1 if is_train else model.batch_size
+    grad = None
 
     # LOOP THROUGH MINIBATCHES
-    for step, (x, y) in enumerate(ptb_iterator(data, model.batch_size, model.seq_len)):
+    for step, (x, y) in enumerate(ptb_iterator(data, batch_size, model.seq_len)):
         if args.model == 'TRANSFORMER':
             batch = Batch(torch.from_numpy(x).long().to(device))
             model.zero_grad()
@@ -413,34 +444,20 @@ def run_epoch(model, data, is_train=False, lr=1.0):
         # For problem 5.3, you will (instead) need to compute the average loss
         #at each time-step separately.
         loss = loss_fn(outputs.contiguous().view(-1, model.vocab_size), tt)
-        print(torch.autograd.grad(loss.sum(), hidden[1, 0, 0], allow_unused=True))
         loss = loss.view(35, 20)
-        loss = torch.sum(loss, dim=1)
-        if is_train:
-            for i in range(model.seq_len):
-                test = torch.autograd.grad(loss[0], torch.sum(hidden[-1], dim=0)[i], allow_unused=True)
-        costs = [loss.data[i] for i in range(model.seq_len)]
-        for i in range(model.seq_len):
-            losses[i] += costs[i]
+        avg_loss = torch.sum(loss, dim=1)
+        l_T = avg_loss[-1]
+        losses.append(avg_loss)
         iters += model.batch_size
-        if args.debug:
-            print(step, loss)
+
         if is_train:  # Only update parameters if training
-            loss = loss.sum()
-            loss.backward(retain_graph=True)
-            print(outputs.grad)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.25)
-            if args.optimizer == 'ADAM':
-                optimizer.step()
-            else:
-                for p in model.parameters():
-                    if p.grad is not None:
-                        p.data.add_(-lr, p.grad.data)
-            if step % (epoch_size // 10) == 10:
-                print('step: '+ str(step) + '\t' \
-                    + "loss for each time step:" + str(costs) + '\t' \
-                    + 'speed (wps):' + str(iters * model.batch_size / (time.time() - start_time)))
-    return np.exp(np.sum(costs) / iters), losses
+            grad = torch.autograd.grad(l_T, hidden)
+            grad = grad.to_numpy()
+            print(grad)
+            grad = grad[1]
+            grad = numpy.linag.norm(grad, axis=1)
+
+    return grad / batch_size, np.sum(losses, dim=0) / batch_size
 
 
 
@@ -468,60 +485,14 @@ else:
     num_epochs = args.num_epochs
 
 # MAIN LOOP
-for epoch in range(num_epochs):
-    t0 = time.time()
-    print('\nEPOCH '+str(epoch)+' ------------------')
-    if args.optimizer == 'SGD_LR_SCHEDULE':
-        lr_decay = lr_decay_base ** max(epoch - m_flat_lr, 0)
-        lr = lr * lr_decay # decay lr if it is time
-    # RUN MODEL ON TRAINING DATA for 5.2
-    train_ppl, train_loss = run_epoch(model, train_data, True, lr)
+# load the model
+model.load_state_dict(torch.load(args.model_path))
+model.eval()
+# RUN MODEL ON TRAINING DATA for 5.2
+grad, _ = run_epoch(model, train_data, True, lr)
+save_grad(grad)
 
-    # RUN MODEL ON VALIDATION DATA for 5.1
-    val_ppl, val_loss = run_epoch(model, valid_data)
+# RUN MODEL ON VALIDATION DATA for 5.1
+_, val_loss = run_epoch(model, valid_data)
+save_loss(val_loss)
 
-
-    # SAVE MODEL IF IT'S THE BEST SO FAR
-    if val_ppl < best_val_so_far:
-        best_val_so_far = val_ppl
-        if args.save_best:
-            print("Saving model parameters to best_params.pt")
-            torch.save(model.state_dict(), os.path.join(args.save_dir, 'best_params.pt'))
-        # NOTE ==============================================
-        # You will need to load these parameters into the same model
-        # for a couple Problems: so that you can compute the gradient
-        # of the loss w.r.t. hidden state as required in Problem 5.2
-        # and to sample from the the model as required in Problem 5.3
-        # We are not asking you to run on the test data, but if you
-        # want to look at test performance you would load the saved
-        # model and run on the test data with batch_size=1
-
-    # LOC RESULTS
-    train_ppls.append(train_ppl)
-    val_ppls.append(val_ppl)
-    train_losses.extend(train_loss)
-    val_losses.append(val_loss)
-    times.append(time.time() - t0)
-    clock.append(sum(times))
-    log_str = 'epoch: ' + str(epoch) + '\t' \
-            + 'train ppl: ' + str(train_ppl) + '\t' \
-            + 'val ppl: ' + str(val_ppl)  + '\t' \
-            + 'best val: ' + str(best_val_so_far) + '\t' \
-            + 'time (s) spent in epoch: ' + str(times[-1])
-    print(log_str)
-    with open (os.path.join(args.save_dir, 'log.txt'), 'a') as f_:
-        f_.write(log_str+ '\n')
-
-val_losses = np.mean(val_loss, axis=0)
-# SAVE LEARNING CURVES
-lc_path = os.path.join(args.save_dir, 'learning_curves.npy')
-print('\nDONE\n\nSaving learning curves to '+lc_path)
-np.save(lc_path, {'train_ppls':train_ppls,
-                  'val_ppls':val_ppls,
-                  'train_losses':train_losses,
-                  'val_losses':val_losses,
-                  'clock':clock})
-# NOTE ==============================================
-# To load these, run
-# >>> x = np.load(lc_path)[()]
-# You will need these values for plotting learning curves (Problem 4)
