@@ -444,8 +444,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
         avg_loss = torch.sum(loss, dim=-1)
         l_T = avg_loss[-1]
         if not is_train:
-            l_T = l_T.to(torch.device('cpu')).detach().numpy()
-            print(l_T.shape)
+            avg_loss = avg_loss.to(torch.device('cpu')).detach.numpy()
         iters += model.batch_size
 
         if is_train:  # Only update parameters if training
@@ -458,7 +457,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
 
             return np.array(grads) / model.batch_size, np.sum(losses, axis=0) / model.batch_size
 
-        return np.array(grads) / model.batch_size, l_T / model.batch_size
+        return np.array(grads) / model.batch_size, avg_loss / model.batch_size
 
 
 
