@@ -446,8 +446,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
 
         if is_train:  # Only update parameters if training
             grad = torch.autograd.grad(l_T, hidden)
-            grad = grad.to_numpy()
-            print(grad)
+            grad = grad[0].to_numpy()
             grad = grad[1]
             grad = numpy.linag.norm(grad, axis=1)
 
