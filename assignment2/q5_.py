@@ -139,7 +139,7 @@ parser.add_argument('--dp_keep_prob', type=float, default=0.35,
 
 # Arguments that you may want to make use of / implement more code for
 parser.add_argument('--debug', action='store_true')
-parser.add_argument('--save_dir', type=str, default='long_exp',
+parser.add_argument('--save_dir', type=str, default='q5',
                     help='path to save the experimental config, logs, model \
                     This is automatically generated based on the command line \
                     arguments you pass and only needs to be set if you want a \
@@ -370,7 +370,9 @@ def repackage_hidden(h):
     else:
         return tuple(repackage_hidden(v) for v in h)
 
-
+if not os.path.isdir(args.save_dir):
+    os.mkdir(args.save_dir)
+    
 def save_grad(grads):
     """
     Saves gradient plots
@@ -384,7 +386,7 @@ def save_grad(grads):
     plt.ylabel("Norm")
     plt.ylim(0, 1)
     plt.plot(np.arange(1, model.seq_len + 1), grads)
-    plt.savefig("q5/grad_norm.png")
+    plt.savefig("{}/grad_norm.png".format(args.save_dir))
 
 def save_loss(losses):
     plt.figure()
@@ -394,7 +396,7 @@ def save_loss(losses):
     plt.ylabel("Loss")
     plt.ylim(0, 1)
     plt.plot(np.arange(1, model.seq_len + 1), losses)
-    plt.savefig("q5/loss_t.png")
+    plt.savefig("{}/loss_t.png".format(args.save_dir))
 
 
 def run_epoch(model, data, is_train=False, lr=1.0):
