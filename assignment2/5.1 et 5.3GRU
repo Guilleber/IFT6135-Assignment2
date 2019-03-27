@@ -317,6 +317,8 @@ for w in range(model.batch_size):
         id= samples[s,w].item()
         samples_gru.append(id_2_word[id])
         
+samples_gru = " ".join(samples_gru)
+        
         
         
         
