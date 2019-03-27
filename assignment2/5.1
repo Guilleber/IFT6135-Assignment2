@@ -221,40 +221,54 @@ def average_Lt(model, valid_data):
     data_len = len(raw_data)
     batch_len = data_len // args.batch_size
     data = np.zeros([args.batch_size, batch_len], dtype=np.int32)
+    
     for i in range(args.batch_size):
         data[i] = raw_data[batch_len * i:batch_len * (i + 1)]
     num_steps = args.seq_len
     epoch_size = (batch_len - 1) // num_steps
+    
     "To have the cross entropy loss for each timestep we cant replace nn.crossentropyloss by these two equivalent functions"
     sm = nn.LogSoftmax()
     nll = nn.NLLLoss()
+    
+    "Initialization
     loss_moy = torch.zeros(num_steps)
     n = 0
+    
     for i in range(epoch_size):
         x = data[:, i*num_steps:(i+1)*num_steps]
         y = data[:, i*num_steps+1:(i+1)*num_steps+1]
-        inputs = torch.from_numpy(x.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda() nn.CrossEntropyLoss(outputs, targets)
-        hidden = model.init_hidden()
-        hidden = hidden.to(device)
-        hidden = repackage_hidden(hidden)
-        outputs, hidden = model.forward(inputs, hidden)
         targets = torch.from_numpy(y.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda()
+        
+        if args.model == 'TRANSFORMER':
+            batch = Batch(torch.from_numpy(x).long().to(device))
+            model.zero_grad()
+            outputs = model.forward(batch.data, batch.mask).transpose(1,0)
+            #print ("outputs.shape", outputs.shape)
+            
+        else:
+            inputs = torch.from_numpy(x.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda()
+            model.zero_grad()
+            hidden = repackage_hidden(hidden)
+            outputs, hidden = model.forward(inputs, hidden)
+            
         for l in range(num_steps):
             for k in range(args.batch_size):
                 o = (outputs[l,k,:]).reshape(1,10000)
                 t = (targets[l,k]).reshape(1)
                 loss_moy[l] += (nll(sm(o), t)).data.item()
                 n+=1
+                
     loss_moy = loss_moy/n
+    
     plt.plot(list(range(1,36)), list(loss_moy), 'go-', label='line 1', linewidth=2)
     plt.title('Average loss at each timestep')
     plt.xlabel('t')
     plt.ylabel('L_t')
     plot = plt
     #plt.savefig('average_time_ste_loss.png')          #To save the plot
-    return loss_moy, plot, n #the n is to verify if all of the data has been swept through
-
-
+    
+    return loss_moy, plot, n              #the n is to verify if all of the data has been swept through
 
 
 
