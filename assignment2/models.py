@@ -148,7 +148,8 @@ class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities
 
         logits = []
         for t in range(self.seq_len):
-            self.hidden_seq += [hidden] # keeps track of hidden layers at time t for Q5.2
+            if t> 0:
+                self.hidden_seq += [hidden] # keeps track of hidden layers at time t for Q5.2
             out = self.embedding(inputs[t])
             new_hidden = []
             for i in range(0, self.num_layers):
@@ -252,7 +253,8 @@ class GRU(nn.Module): # Implement a stacked GRU RNN
     def forward(self, inputs, hidden):
         logits = []
         for t in range(self.seq_len):
-            self.hidden_seq += [hidden]  # keeps track of hidden layers at time t for Q5.2
+            if t > 0:
+                self.hidden_seq += [hidden]  # keeps track of hidden layers at time t for Q5.2
             inp = self.emb(inputs[t])
             h_in = self.dropout(inp)
             new_hidden = []
