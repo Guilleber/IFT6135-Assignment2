@@ -438,7 +438,6 @@ def run_epoch(model, data, is_train=False, lr=1.0):
         # For problem 5.3, you will (instead) need to compute the average loss
         #at each time-step separately.
         loss = loss_fn(outputs.contiguous().view(-1, model.vocab_size), tt)
-        print(loss.size())
         loss = loss.view(35, 20)
         avg_loss = torch.sum(loss, dim=-1)
         l_T = avg_loss[-1]
@@ -447,6 +446,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
 
         if is_train:  # Only update parameters if training
             grad = torch.autograd.grad(l_T, hidden)
+            print(grad[-1].size())
             grad = grad[-1].cpu().data
             print(grad.shape)
             grad = numpy.linalg.norm(grad, axis=1)
