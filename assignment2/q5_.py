@@ -414,11 +414,10 @@ def run_epoch(model, data, is_train=False, lr=1.0):
     iters = 0
     losses = []
 
-    batch_size = 1 if is_train else model.batch_size
     grad = None
 
     # LOOP THROUGH MINIBATCHES
-    for step, (x, y) in enumerate(ptb_iterator(data, batch_size, model.seq_len)):
+    for step, (x, y) in enumerate(ptb_iterator(data, model.batch_size, model.seq_len)):
         if args.model == 'TRANSFORMER':
             batch = Batch(torch.from_numpy(x).long().to(device))
             model.zero_grad()
@@ -452,7 +451,9 @@ def run_epoch(model, data, is_train=False, lr=1.0):
             grad = grad[1]
             grad = numpy.linag.norm(grad, axis=1)
 
-    return grad / batch_size, np.sum(losses, dim=0) / batch_size
+            return grad / model.batch_size, np.sum(losses, dim=0) / model.batch_size
+
+    return grad / model.batch_size, np.sum(losses, dim=0) / model.batch_size
 
 
 
