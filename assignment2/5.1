@@ -1,0 +1,267 @@
+from __future__ import print_function
+import os
+import sys
+import torch 
+import torch.nn as nn
+import numpy as np
+import torch.nn.functional as F
+import math, copy, time
+from torch.autograd import Variable
+import matplotlib.pyplot as plt
+import argparse
+import time
+import collections
+
+# ARG PARSING AND EXPERIMENT SETUP
+parser = argparse.ArgumentParser(description='PyTorch Penn Treebank Language Modeling')
+# Arguments you may need to set to run different experiments in 4.1 & 4.2.
+parser.add_argument('--data', type=str, default='data',
+                    help='location of the data corpus')
+parser.add_argument('--model', type=str, default='GRU',
+                    help='type of recurrent net (RNN, GRU, TRANSFORMER)')
+parser.add_argument('--optimizer', type=str, default='SGD_LR_SCHEDULE',
+                    help='optimization algo to use; SGD, SGD_LR_SCHEDULE, ADAM')
+parser.add_argument('--seq_len', type=int, default=35,
+                    help='number of timesteps over which BPTT is performed')
+parser.add_argument('--batch_size', type=int, default=20,
+                    help='size of one minibatch')
+parser.add_argument('--initial_lr', type=float, default=20.0,
+                    help='initial learning rate')
+parser.add_argument('--hidden_size', type=int, default=200,
+                    help='size of hidden layers. IMPORTANT: for the transformer\
+                    this must be a multiple of 16.')
+parser.add_argument('--save_best', action='store_true',
+                    help='save the model for the best validation performance')
+parser.add_argument('--num_layers', type=int, default=2,
+                    help='number of hidden layers in RNN/GRU, or number of transformer blocks in TRANSFORMER')
+# Other hyperparameters you may want to tune in your exploration
+parser.add_argument('--emb_size', type=int, default=200,
+                    help='size of word embeddings')
+parser.add_argument('--num_epochs', type=int, default=40,
+                    help='number of epochs to stop after')
+parser.add_argument('--dp_keep_prob', type=float, default=0.35,
+                    help='dropout *keep* probability. drop_prob = 1-dp_keep_prob \
+                    (dp_keep_prob=1 means no dropout)')
+# Arguments that you may want to make use of / implement more code for
+parser.add_argument('--debug', action='store_true') 
+parser.add_argument('--save_dir', type=str, default='',
+                    help='path to save the experimental config, logs, model \
+                    This is automatically generated based on the command line \
+                    arguments you pass and only needs to be set if you want a \
+                    custom dir name')
+parser.add_argument('--evaluate', action='store_true',
+                    help="use this flag to run on the test set. Only do this \
+                    ONCE for each model setting, and only after you've \
+                    completed ALL hyperparameter tuning on the validation set.\
+                    Note we are not requiring you to do this.")
+# DO NOT CHANGE THIS (setting the random seed makes experiments deterministic, 
+# which helps for reproducibility)
+parser.add_argument('--seed', type=int, default=1111,
+                    help='random seed')
+args = parser.parse_args()
+argsdict = args.__dict__
+argsdict['code_file'] = sys.argv[0]
+device = torch.device("cpu")
+
+# DATA LOADING & PROCESSING
+def _read_words(filename):
+    with open(filename, "r") as f:
+      return f.read().replace("\n", "<eos>").split()
+
+def _build_vocab(filename):
+    data = _read_words(filename)
+    counter = collections.Counter(data)
+    count_pairs = sorted(counter.items(), key=lambda x: (-x[1], x[0]))
+    words, _ = list(zip(*count_pairs))
+    word_to_id = dict(zip(words, range(len(words))))
+    id_to_word = dict((v, k) for k, v in word_to_id.items())
+    return word_to_id, id_to_word
+
+def _file_to_word_ids(filename, word_to_id):
+    data = _read_words(filename)
+    return [word_to_id[word] for word in data if word in word_to_id]
+
+# Processes the raw data from text files
+def ptb_raw_data(data_path=None, prefix="ptb"):
+    train_path = os.path.join(data_path, prefix + ".train.txt")
+    valid_path = os.path.join(data_path, prefix + ".valid.txt")
+    test_path = os.path.join(data_path, prefix + ".test.txt")
+    word_to_id, id_2_word = _build_vocab(train_path)
+    train_data = _file_to_word_ids(train_path, word_to_id)
+    valid_data = _file_to_word_ids(valid_path, word_to_id)
+    test_data = _file_to_word_ids(test_path, word_to_id)
+    return train_data, valid_data, test_data, word_to_id, id_2_word
+
+# Yields minibatches of data
+def ptb_iterator(raw_data, batch_size, num_steps):
+    raw_data = np.array(raw_data, dtype=np.int32)
+    data_len = len(raw_data)
+    batch_len = data_len // batch_size
+    data = np.zeros([batch_size, batch_len], dtype=np.int32)
+    for i in range(batch_size):
+        data[i] = raw_data[batch_len * i:batch_len * (i + 1)]
+    epoch_size = (batch_len - 1) // num_steps
+    if epoch_size == 0:
+        raise ValueError("epoch_size == 0, decrease batch_size or num_steps")
+    for i in range(epoch_size):
+        x = data[:, i*num_steps:(i+1)*num_steps]
+        y = data[:, i*num_steps+1:(i+1)*num_steps+1]
+        yield (x, y)
+
+class Batch:
+    "Data processing for the transformer. This class adds a mask to the data."
+    def __init__(self, x, pad=-1):
+        self.data = x
+        self.mask = self.make_mask(self.data, pad)
+    @staticmethod
+    def make_mask(data, pad):
+        "Create a mask to hide future words."
+        def subsequent_mask(size):
+            """ helper function for creating the masks. """
+            attn_shape = (1, size, size)
+            subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
+            return torch.from_numpy(subsequent_mask) == 0
+        mask = (data != pad).unsqueeze(-2)
+        mask = mask & Variable(
+            subsequent_mask(data.size(-1)).type_as(mask.data))
+        return mask
+
+#Setting arguments
+def setattrs(_self, **kwargs):
+    for k,v in kwargs.items():
+        setattr(_self, k, v)
+        
+setattrs(args, model= 'RNN', data='C:/Users/elyes/Desktop', optimizer='ADAM', initial_lr=0.0001, batch_size=20, seq_len=35, hidden_size=1500, num_layers=2, dp_keep_prob=0.35)
+# LOAD DATA
+print('Loading data from '+args.data)
+raw_data = ptb_raw_data(data_path=args.data)
+train_data, valid_data, test_data, word_to_id, id_2_word = raw_data
+vocab_size = len(word_to_id)
+print('  vocabulary size: {}'.format(vocab_size))
+
+######################################## Setting the RNN model #######################################
+def clones(module, N):
+    return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
+
+
+class RNN(nn.Module): # Implement a stacked vanilla RNN with Tanh nonlinearities.
+  def __init__(self, emb_size, hidden_size, seq_len, batch_size, vocab_size, num_layers, dp_keep_prob):
+    super(RNN, self).__init__()
+    self.emb_size = emb_size
+    self.hidden_size = hidden_size
+    self.seq_len = seq_len
+    self.batch_size = batch_size
+    self.vocab_size = vocab_size
+    self.num_layers = num_layers
+    self.dp_prob = 1-dp_keep_prob
+    self.k = 1.0/self.hidden_size
+    self.embedding = nn.Embedding(self.vocab_size, self.emb_size)
+    self.dropout = nn.Dropout(self.dp_prob)
+    self.rnn_layers = nn.ModuleList()
+    self.linears_out = nn.ModuleList()
+    for i in range(self.num_layers):
+        self.rnn_layers.append(nn.Linear(2*self.hidden_size if i != 0 else self.hidden_size+self.emb_size, self.hidden_size))
+        self.linears_out.append(nn.Linear(self.hidden_size, self.hidden_size if i != self.num_layers-1 else self.vocab_size))
+    return
+  def init_weights(self):
+    nn.init.uniform_(self.embedding.weight, -0.1, 0.1)
+    for i in range(self.num_layers):
+        nn.init.uniform_(self.rnn_layers[i].weight, -self.k, self.k)
+        nn.init.uniform_(self.rnn_layers[i].bias, -self.k, self.k)
+        if i == self.num_layers:
+            nn.init.uniform_(self.linears_out[i].weight, -0.1, 0.1)
+            nn.init.constant_(self.linears_out[i].bias, 0.0)
+        else:
+            nn.init.uniform_(self.linears_out[i].weight, -self.k, self.k)
+            nn.init.uniform_(self.linears_out[i].bias, -self.k, self.k)
+    return
+  def init_hidden(self):
+    return Variable(torch.zeros((self.num_layers, self.batch_size, self.hidden_size))).float()# a parameter tensor of shape (self.num_layers, self.batch_size, self.hidden_size)
+  def forward(self, inputs, hidden):
+    emb_inputs = self.embedding(inputs.view(self.seq_len*self.batch_size)).view(self.seq_len, self.batch_size, self.emb_size)
+    logits = []
+    for t in range(self.seq_len):
+        out = emb_inputs[t]
+        new_hidden = []
+        for i in range(self.num_layers):
+                new_hidden.append(torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1))))
+                out = F.relu(self.dropout(self.linears_out[i](new_hidden[-1])))
+        hidden = torch.cat([h.unsqueeze(0) for h in new_hidden], 0)
+        logits.append(out)
+    return torch.cat([t.unsqueeze(0) for t in logits], 0), hidden
+  def generate(self, input, hidden, generated_seq_len, batch_size):
+    out = self.embedding(input)
+    samples = torch.zeros((generated_seq_len, batch_size)).float()
+    for t in range(generated_seq_len):
+        new_hidden = []
+        for i in range(self.num_layers):
+            new_hidden.append(torch.tanh(self.rnn_layers[i](torch.cat([out, hidden[i]], 1))))
+            out = self.dropout(new_hidden[-1])
+        hidden = torch.cat([h.unsqueeze(0) for h in new_hidden], 0)
+        out = self.linear_out(out)
+        samples += [torch.softmax(out).argmax(dim=-1)]
+        input = samples[t]
+    return samples
+
+model = RNN(emb_size=args.emb_size, hidden_size=args.hidden_size, 
+                seq_len=args.seq_len, batch_size=args.batch_size,
+                vocab_size=vocab_size, num_layers=args.num_layers, 
+                dp_keep_prob=args.dp_keep_prob)
+
+# saved parameters to load best trained model
+path = args.data+'/best_params.pt'
+model.load_state_dict(torch.load(path, map_location=device))
+
+
+#################################################################################################################################
+#############################################          function for 5.1     #####################################################
+def average_Lt(model, valid_data):
+    "Getting the data into a matrix where each column represents a batch"
+    raw_data = np.array(valid_data, dtype=np.int32)
+    data_len = len(raw_data)
+    batch_len = data_len // args.batch_size
+    data = np.zeros([args.batch_size, batch_len], dtype=np.int32)
+    for i in range(args.batch_size):
+        data[i] = raw_data[batch_len * i:batch_len * (i + 1)]
+    num_steps = args.seq_len
+    epoch_size = (batch_len - 1) // num_steps
+    "To have the cross entropy loss for each timestep we cant replace nn.crossentropyloss by these two equivalent functions"
+    sm = nn.LogSoftmax()
+    nll = nn.NLLLoss()
+    loss_moy = torch.zeros(num_steps)
+    n = 0
+    for i in range(epoch_size):
+        x = data[:, i*num_steps:(i+1)*num_steps]
+        y = data[:, i*num_steps+1:(i+1)*num_steps+1]
+        inputs = torch.from_numpy(x.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda() nn.CrossEntropyLoss(outputs, targets)
+        hidden = model.init_hidden()
+        hidden = hidden.to(device)
+        hidden = repackage_hidden(hidden)
+        outputs, hidden = model.forward(inputs, hidden)
+        targets = torch.from_numpy(y.astype(np.int64)).transpose(0, 1).contiguous().to(device)#.cuda()
+        for l in range(num_steps):
+            for k in range(args.batch_size):
+                o = (outputs[l,k,:]).reshape(1,10000)
+                t = (targets[l,k]).reshape(1)
+                loss_moy[l] += (nll(sm(o), t)).data.item()
+                n+=1
+    loss_moy = loss_moy/n
+    plt.plot(list(range(1,36)), list(loss_moy), 'go-', label='line 1', linewidth=2)
+    plt.title('Average loss at each timestep')
+    plt.xlabel('t')
+    plt.ylabel('L_t')
+    plot = plt
+    #plt.savefig('average_time_ste_loss.png')          #To save the plot
+    return loss_moy, plot, n #the n is to verify if all of the data has been swept through
+
+
+
+
+
+
+
+
+
+
+
+
