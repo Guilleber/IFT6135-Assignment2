@@ -447,10 +447,10 @@ def run_epoch(model, data, is_train=False, lr=1.0):
         if is_train:  # Only update parameters if training
             for t in range(model.seq_len):
                 grad = torch.autograd.grad(l_T, model.hidden_seq[t], retain_graph=True)
-                print(grad.size())
                 grad = grad[-1].cpu().data
                 grad = numpy.linalg.norm(grad, axis=1)
                 grad = np.sum(grad)
+                print(grad.shape)
                 grads.append(grad)
 
             return grad / model.batch_size, np.sum(losses, axis=0) / model.batch_size
