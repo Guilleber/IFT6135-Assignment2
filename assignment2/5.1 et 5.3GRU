@@ -273,6 +273,60 @@ def average_Lt(model, valid_data):
     return loss_moy, plot, n              #the n is to verify if all of the data has been swept through
 
 
+####################################################################################################################
+#################################     5.3 GRU       ################################################################
+
+args.batch_size= 10
+
+sm = nn.Softmax()
+
+hidden = model.init_hidden()
+hidden = hidden.to(device)
+hidden = repackage_hidden(hidden)
+
+x= torch.randint(vocab_size, (1,model.batch_size)).contiguous().to(device)
+model.eval()
+
+samples = []
+
+for t in range(args.seq_len):
+    h_in = model.emb(x).reshape(1,model.batch_size,model.emb_size)
+    new_hidden = []
+    
+    def concat(a, b): return torch.cat((a, b), dim=-1)
+    
+    for i in range(model.num_layers):
+        r_t = torch.sigmoid(model.w_r[i](concat(h_in, hidden[i].reshape(1,model.batch_size,model.hidden_size))))
+        z_t = torch.sigmoid(model.w_z[i](concat(h_in, hidden[i].reshape(1,model.batch_size,model.hidden_size))))
+        h_tilde = torch.tanh(model.w_h[i](concat(h_in, r_t * hidden[i].reshape(1,model.batch_size,model.hidden_size))))
+        h_out = (torch.ones_like(z_t) - z_t) * hidden[i] + z_t * h_tilde
+        new_hidden = new_hidden + [h_out]
+        h_in = h_out
+        
+    hidden = new_hidden
+    
+    x = sm(model.w_y(hidden[-1][0,:,:])).argmax(dim=-1)
+    samples = samples + [x]
+
+
+samples = torch.stack(samples)
+samples_gru=[]
+
+for w in range(model.batch_size):
+    for s in range(model.seq_len):
+        id= samples[s,w].item()
+        samples_gru.append(id_2_word[id])
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
 
 
 
