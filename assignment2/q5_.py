@@ -445,7 +445,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
         iters += model.batch_size
 
         if is_train:  # Only update parameters if training
-            for t in range(model.sew_len):
+            for t in range(model.seq_len):
                 grad = torch.autograd.grad(l_T, model.hidden_seq[t])
                 grad = grad[-1].cpu().data
                 grad = numpy.linalg.norm(grad, axis=1)
