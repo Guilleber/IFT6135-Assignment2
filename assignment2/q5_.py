@@ -377,22 +377,22 @@ def save_grad(grads):
     :param grads: Has shape [seq_len,]
     :return:
     """
-    figure = plt.figure()
-    figure.title("Norm of gradient of L_T wrt h_t as a function of t for {}".format(args.model))
-    figure.xlabel("Time step t")
-    figure.xlimit(1, model.seq_len)
-    figure.ylabel("Norm")
-    figure.ylimit(0, 1)
+    plt.figure()
+    plt.title("Norm of gradient of L_T wrt h_t as a function of t for {}".format(args.model))
+    plt.xlabel("Time step t")
+    plt.xlim(1, model.seq_len)
+    plt.ylabel("Norm")
+    plt.ylim(0, 1)
     plt.plot(np.arange(1, model.seq_len + 1), grads)
     plt.savefig("q5/grad_norm.png")
 
 def save_loss(losses):
-    figure = plt.figure()
-    figure.title("Loss L_t as a function of t for {}".format(args.model))
-    figure.xlabel("Time step t")
-    figure.xlimit(1, model.seq_len)
-    figure.ylabel("Loss")
-    figure.ylimit(0, 1)
+    plt.figure()
+    plt.title("Loss L_t as a function of t for {}".format(args.model))
+    plt.xlabel("Time step t")
+    plt.xlim(1, model.seq_len)
+    plt.ylabel("Loss")
+    plt.ylim(0, 1)
     plt.plot(np.arange(1, model.seq_len + 1), losses)
     plt.savefig("q5/loss_t.png")
 
