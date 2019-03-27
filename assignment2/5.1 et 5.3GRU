@@ -310,15 +310,21 @@ for t in range(args.seq_len):
 
 
 samples = torch.stack(samples)
+
 samples_gru=[]
 
 for w in range(model.batch_size):
+    a=[]
     for s in range(model.seq_len):
         id= samples[s,w].item()
-        samples_gru.append(id_2_word[id])
-        
-samples_gru = " ".join(samples_gru)
-        
+        a.append(id_2_word[id])
+    samples_gru.append(a)
+    
+echant_gru= ''
+for i in range(model.batch_size):
+    echant_gru = " ".join(samples_gru[i])
+    print(echant_gru)
+    print('\n')
         
         
         
