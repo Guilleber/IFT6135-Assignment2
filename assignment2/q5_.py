@@ -370,6 +370,8 @@ def repackage_hidden(h):
     else:
         return tuple(repackage_hidden(v) for v in h)
 
+
+################# Verifier si probleme de folder
 if not os.path.isdir(args.save_dir + "/" + args.model):
     os.mkdir(args.save_dir + "/" + args.model)
 
