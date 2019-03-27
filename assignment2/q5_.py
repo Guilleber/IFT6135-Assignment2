@@ -131,7 +131,7 @@ parser.add_argument('--num_layers', type=int, default=2,
 # Other hyperparameters you may want to tune in your exploration
 parser.add_argument('--emb_size', type=int, default=200,
                     help='size of word embeddings')
-parser.add_argument('--num_epochs', type=int, default=40,
+parser.add_argument('--num_epochs', type=int, default=1,
                     help='number of epochs to stop after')
 parser.add_argument('--dp_keep_prob', type=float, default=0.35,
                     help='dropout *keep* probability. drop_prob = 1-dp_keep_prob \
@@ -372,7 +372,7 @@ def repackage_hidden(h):
 
 if not os.path.isdir(args.save_dir):
     os.mkdir(args.save_dir)
-    
+
 def save_grad(grads):
     """
     Saves gradient plots
