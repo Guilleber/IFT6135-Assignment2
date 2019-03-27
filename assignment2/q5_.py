@@ -445,6 +445,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
         l_T = avg_loss[-1]
         if not is_train:
             l_T = l_T.to(torch.device('cpu')).detach().numpy()
+            print(l_T.shape)
         iters += model.batch_size
 
         if is_train:  # Only update parameters if training
