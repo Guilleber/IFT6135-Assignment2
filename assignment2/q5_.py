@@ -450,10 +450,9 @@ def run_epoch(model, data, is_train=False, lr=1.0):
                 grad = grad[-1].cpu().data
                 grad = numpy.linalg.norm(grad, axis=1)
                 grad = np.sum(grad)
-                print(grad.shape)
                 grads.append(grad)
 
-            return grad / model.batch_size, np.sum(losses, axis=0) / model.batch_size
+            return np.array(grads) / model.batch_size, np.sum(losses, axis=0) / model.batch_size
 
     return np.array(grads) / model.batch_size, np.sum(losses, axis=0) / model.batch_size
 
