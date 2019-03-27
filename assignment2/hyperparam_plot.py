@@ -17,7 +17,7 @@ parser.add_argument('--plotx', type=str, default='epoch',
                     help='epoch for plotting over epochs and clock for plotting over wall clock time')
 parser.add_argument('--ploty', type=str, default='o',
                     help='o for plotting optimizer a for architecture')
-parser.add_argument('--exp', type=str, default='s',
+parser.add_argument('--exp', type=str, default='d',
                     help='s for short experiments and l for long experiments')
 parser.add_argument('--train', action='store_true',
                     help='if you want to plot training curves in addition to the validation curves')
@@ -33,8 +33,12 @@ if args.exp == 's':
     e=6
 else:
     e=40
+    if args.exp == 'd':
+        args.results_dir='Default'
+    else:
+        args.results_dir='long_exp'
 
-args.results_dir='tmpp'
+#args.results_dir='tmppp'
 
 c=0
 i=1
@@ -42,7 +46,11 @@ x_max=math.inf
 
 
 if args.ploty == 'a':
+    with open(args.results_dir+'/index'+'_'+args.architecture+'_'+args.exp+'.csv','w') as f:
+        f.write("index&model&optimizer&initial\_lr&batch\_size&seq\_len&hidden\_size&num\_layers&dp\_keep\_prob&train\_ppl&best\_val\_ppl\\\\ \n")
+        f.write("\\hline \n")
     for (root, dirs, files) in os.walk(args.results_dir):
+        table=[]
         for d in dirs:
             if args.architecture in d:
                 x=np.load(os.path.join(root,d)+'/learning_curves.npy')[()]
@@ -63,16 +71,43 @@ if args.ploty == 'a':
                 plt.ylabel("ppls")
                 plt.title(args.architecture+" experiments")
                 c+=1
-            i+=1
+                with open(root+'/'+d+"/log.txt",'r') as f:
+                    x=f.readlines()
+                    best_val_ppl=x[-1].split('\t')[-2].split(': ')[1]
+                    train_ppl=x[-1].split('\t')[-4].split(': ')[1]
+
+                s=d.split('=')
+                s=s[1:len(s)]
+                v=[str(i)]
+                for pi,p in enumerate(s):
+                    if pi==1:
+                        v.append(p.split('_i')[0])
+                    else:
+                        v.append(p.split('_')[0])
+                v.append(train_ppl)
+                v.append(best_val_ppl)
+                table.append(v)
+                i+=1
+        table.sort(key=lambda x:x[-1])
+        for row in table :
+            with open(args.results_dir+'/index'+'_'+args.architecture+'_'+args.exp+'.csv','a') as f:
+                f.write(('&').join(row)+'\\\\ \n')
 
     plt.legend(loc='upper left', prop={'size':5},bbox_to_anchor=(0,1))
-    plt.savefig(args.results_dir+'/'+args.architecture+'_'+args.plotx,quality=95,dpi=400)
+    plt.ylim(0,2000)
+    plt.savefig(args.results_dir+'/'+args.architecture+'_'+args.plotx+'_'+args.exp+'(zoom)',quality=95,dpi=400)
 
 
 elif args.ploty == 'o':
+    with open(args.results_dir+'/index'+'_'+args.optimizer+'_'+args.exp+'.csv','w') as f:
+        f.write("index&model&optimizer&initial\_lr&batch\_size&seq\_len&hidden\_size&num\_layers&dp\_keep\_prob&train\_ppl&best\_val\_ppl\\\\ \n")
+        f.write("\\hline \n")
     for (root, dirs, files) in os.walk(args.results_dir):
+        table=[]
         for d in dirs:
-            if args.optimizer in d:
+            if args.optimizer in d :
+                if args.optimizer =='SGD' and d.split("=")[0].split('_')[2]!='model':
+                    continue
                 x=np.load(os.path.join(root,d)+'/learning_curves.npy')[()]
                 if args.plotx=='epoch':
                     plt.plot(range(e),x['val_ppls'],color=colors[c],label=str(i)+'_val')
@@ -91,7 +126,27 @@ elif args.ploty == 'o':
                 plt.ylabel("ppls")
                 plt.title(args.optimizer+" experiments")
                 c+=1
-            i+=1
+                with open(root+'/'+d+"/log.txt",'r') as f:
+                    x=f.readlines()
+                    best_val_ppl=x[-1].split('\t')[-2].split(': ')[1]
+                    train_ppl=x[-1].split('\t')[-4].split(': ')[1]
 
+                s=d.split('=')
+                s=s[1:len(s)]
+                v=[str(i)]
+                for pi,p in enumerate(s):
+                    if pi==1:
+                        v.append(p.split('_i')[0])
+                    else:
+                        v.append(p.split('_')[0])
+                v.append(train_ppl)
+                v.append(best_val_ppl)
+                table.append(v)
+                i+=1
+        table.sort(key=lambda x:x[-1])
+        for row in table :
+            with open(args.results_dir+'/index'+'_'+args.optimizer+'_'+args.exp+'.csv','a') as f:
+                f.write(('&').join(row)+'\\\\ \n')
+    plt.ylim(0,2000)
     plt.legend(loc='upper left', prop={'size':5},bbox_to_anchor=(0,1))
-    plt.savefig(args.results_dir+'/'+args.optimizer+'_'+args.plotx)
+    plt.savefig(args.results_dir+'/'+args.optimizer+'_'+args.plotx+'_'+args.exp+'(zoom)',quality=95,dpi=400)
