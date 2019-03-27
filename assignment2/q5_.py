@@ -183,13 +183,6 @@ while os.path.exists(experiment_path + "_" + str(i)):
     i += 1
 experiment_path = experiment_path + "_" + str(i)
 
-# Creates an experimental directory and dumps all the args to a text file
-os.mkdir(experiment_path)
-print ("\nPutting log in %s"%experiment_path)
-argsdict['save_dir'] = experiment_path
-with open (os.path.join(experiment_path,'exp_config.txt'), 'w') as f:
-    for key in sorted(argsdict):
-        f.write(key+'    '+str(argsdict[key])+'\n')
 
 # Set the random seed manually for reproducibility.
 torch.manual_seed(args.seed)
