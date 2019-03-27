@@ -260,13 +260,15 @@ def average_Lt(model, valid_data):
                 n+=1
                 
     loss_moy = loss_moy/n
-    #plt.plot(list(range(1,36)), list(loss_moy), 'go-', label='line 1', linewidth=2)
-    #plt.title('Average loss at each timestep')
-    #plt.xlabel('t')
-    #plt.ylabel('L_t')
-    #plot = plt
+    
+    plt.plot(list(range(1,36)), list(loss_moy), 'go-', label='line 1', linewidth=2)
+    plt.title('Average loss at each timestep')
+    plt.xlabel('t')
+    plt.ylabel('L_t')
+    plot = plt
     #plt.savefig('average_time_ste_loss.png')          #To save the plot
-    return loss_moy, n #the n is to verify if all of the data has been swept through
+    
+    return loss_moy, plot, n              #the n is to verify if all of the data has been swept through
 
 
 
