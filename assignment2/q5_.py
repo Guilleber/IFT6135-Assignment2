@@ -414,7 +414,7 @@ def run_epoch(model, data, is_train=False, lr=1.0):
     iters = 0
     losses = []
 
-    grad = None
+    grads = []
 
     # LOOP THROUGH MINIBATCHES
     for step, (x, y) in enumerate(ptb_iterator(data, model.batch_size, model.seq_len)):
@@ -445,15 +445,16 @@ def run_epoch(model, data, is_train=False, lr=1.0):
         iters += model.batch_size
 
         if is_train:  # Only update parameters if training
-            grad = torch.autograd.grad(l_T, hidden)
-            print(grad[-1].size())
-            grad = grad[-1].cpu().data
-            print(grad.shape)
-            grad = numpy.linalg.norm(grad, axis=1)
+            for t in range(model.sew_len):
+                grad = torch.autograd.grad(l_T, model.hidden_seq[t])
+                grad = grad[-1].cpu().data
+                grad = numpy.linalg.norm(grad, axis=1)
+                grad = np.sum(grad)
+                grads.append(grad)
 
             return grad / model.batch_size, np.sum(losses, axis=0) / model.batch_size
 
-    return grad / model.batch_size, np.sum(losses, axis=0) / model.batch_size
+    return np.array(grads) / model.batch_size, np.sum(losses, axis=0) / model.batch_size
 
 
 
