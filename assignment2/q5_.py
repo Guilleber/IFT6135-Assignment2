@@ -152,6 +152,8 @@ parser.add_argument('--evaluate', action='store_true',
 parser.add_argument('--short_exp', action='store_true',
                     help="short experiments (few epochs) to find some relevant hyperparameters.")
 
+parser.add_argument('--generate', action='store_true')
+
 # DO NOT CHANGE THIS (setting the random seed makes experiments deterministic,
 # which helps for reproducibility)
 parser.add_argument('--seed', type=int, default=1111,
@@ -325,7 +327,7 @@ elif args.model == 'TRANSFORMER':
 else:
   print("Model type not recognized.")
 
-if args.model_path is not None:
+if args.model_path is not None and args.generate:
     model.load_state_dict(torch.load(args.model_path))
     model = model.to(device)
     gen = model.generate(torch.LongTensor(args.batch_size).random_(0, model.vocab_size).cuda(), model.init_hidden().cuda(), 10)
@@ -480,6 +482,7 @@ else:
 # MAIN LOOP
 # load the model
 model.load_state_dict(torch.load(args.model_path))
+model.to(device)
 model.eval()
 # RUN MODEL ON TRAINING DATA for 5.2
 grad, _ = run_epoch(model, train_data, True, lr)
